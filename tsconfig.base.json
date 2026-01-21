@@ -5,7 +5,7 @@
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
-      "@universal/core": ["packages/core/src/index.ts"]
+      "@usbx/core": ["packages/core/src/index.ts"]
     },
     "declaration": true,
     "declarationMap": true,

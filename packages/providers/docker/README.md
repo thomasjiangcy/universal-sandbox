@@ -1,18 +1,18 @@
-## @universal/docker
+## @usbx/docker
 
 Docker provider for Universal Sandbox.
 
 ### Install
 
 ```
-pnpm add @universal/docker
+pnpm add @usbx/docker
 ```
 
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@universal/core";
-import { DockerProvider } from "@universal/docker";
+import { UniversalSandbox } from "@usbx/core";
+import { DockerProvider } from "@usbx/docker";
 
 const sandbox = new UniversalSandbox({
   provider: new DockerProvider({ defaultImage: "alpine" }),

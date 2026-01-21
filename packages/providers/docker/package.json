@@ -1,5 +1,5 @@
 {
-  "name": "@universal/docker",
+  "name": "@usbx/docker",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -20,7 +20,7 @@
     "test:e2e": "vitest run e2e"
   },
   "dependencies": {
-    "@universal/core": "workspace:*",
+    "@usbx/core": "workspace:*",
     "dockerode": "^4.0.9"
   },
   "devDependencies": {

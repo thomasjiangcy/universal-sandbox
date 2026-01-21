@@ -6,7 +6,7 @@ import type {
   Sandbox,
   SandboxId,
   SandboxProvider,
-} from "@universal/core";
+} from "@usbx/core";
 
 export type SpritesProviderOptions = {
   token?: string;
@@ -19,10 +19,11 @@ type SpritesExecResult = {
   exitCode?: number | null;
 };
 
-export class SpritesProvider
-  implements
-    SandboxProvider<ReturnType<SpritesClient["sprite"]>, SpritesClient, Record<string, unknown>>
-{
+export class SpritesProvider implements SandboxProvider<
+  ReturnType<SpritesClient["sprite"]>,
+  SpritesClient,
+  Record<string, unknown>
+> {
   private client: SpritesClient;
 
   native: SpritesClient;
@@ -61,9 +62,10 @@ export class SpritesProvider
   }
 }
 
-class SpritesSandbox
-  implements Sandbox<ReturnType<SpritesClient["sprite"]>, Record<string, unknown>>
-{
+class SpritesSandbox implements Sandbox<
+  ReturnType<SpritesClient["sprite"]>,
+  Record<string, unknown>
+> {
   id: SandboxId;
   name?: string;
   native: ReturnType<SpritesClient["sprite"]>;

@@ -7,7 +7,7 @@ import type {
   Sandbox,
   SandboxId,
   SandboxProvider,
-} from "@universal/core";
+} from "@usbx/core";
 
 export type DockerProviderOptions = {
   docker?: Docker;
@@ -25,9 +25,11 @@ export type DockerExecOptions = {
   tty?: boolean;
 };
 
-export class DockerProvider
-  implements SandboxProvider<Docker.Container, Docker, DockerExecOptions>
-{
+export class DockerProvider implements SandboxProvider<
+  Docker.Container,
+  Docker,
+  DockerExecOptions
+> {
   private client: Docker;
   private defaultImage?: string;
   private defaultCommand: string[];
