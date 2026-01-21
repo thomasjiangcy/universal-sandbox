@@ -1,7 +1,7 @@
 {
   "name": "@usbx/docker",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,6 +10,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown src/index.ts --format esm --dts --sourcemap --target es2022 --out-dir dist",
