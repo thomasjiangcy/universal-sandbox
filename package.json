@@ -1,0 +1,30 @@
+{
+  "name": "universal-sandbox",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "oxlint .",
+    "format": "oxfmt --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "@changesets/cli": "^2.27.11",
+    "oxfmt": "^0.26.0",
+    "oxlint": "^1.41.0",
+    "tsdown": "^0.20.0-beta.4",
+    "turbo": "^2.7.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  },
+  "engines": {
+    "node": ">=24.13.0 <25",
+    "pnpm": ">=10.28.1 <11"
+  },
+  "packageManager": "pnpm@10.28.1"
+}
