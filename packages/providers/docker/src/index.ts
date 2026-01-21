@@ -7,7 +7,7 @@ import type {
   Sandbox,
   SandboxId,
   SandboxProvider,
-} from "@universal-sandbox/core";
+} from "@universal/core";
 
 export type DockerProviderOptions = {
   docker?: Docker;

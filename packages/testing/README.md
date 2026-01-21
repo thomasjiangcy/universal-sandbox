@@ -1,18 +1,18 @@
-## @universal-sandbox/testing
+## @universal/testing
 
 Testing helpers for Universal Sandbox.
 
 ### Install
 
 ```
-pnpm add @universal-sandbox/testing -D
+pnpm add @universal/testing -D
 ```
 
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@universal-sandbox/core";
-import { LocalProvider } from "@universal-sandbox/testing";
+import { UniversalSandbox } from "@universal/core";
+import { LocalProvider } from "@universal/testing";
 
 const sandbox = new UniversalSandbox({
   provider: new LocalProvider(),

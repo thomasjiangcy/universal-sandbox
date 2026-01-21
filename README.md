@@ -4,10 +4,10 @@ Unified TypeScript API for interacting with remote and local sandbox providers.
 
 ## Packages
 
-- `@universal-sandbox/core`
-- `@universal-sandbox/sprites`
-- `@universal-sandbox/docker`
-- `@universal-sandbox/testing`
+- `@universal/core`
+- `@universal/sprites`
+- `@universal/docker`
+- `@universal/testing`
 
 ## Development
 

@@ -1,5 +1,5 @@
 {
-  "name": "@universal-sandbox/sprites",
+  "name": "@universal/sprites",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@fly/sprites": "^0.0.1",
-    "@universal-sandbox/core": "workspace:*"
+    "@universal/core": "workspace:*"
   },
   "engines": {
     "node": ">=24.13.0 <25",

@@ -1,4 +1,4 @@
-import type { ExecResult, Sandbox, SandboxProvider } from "@universal-sandbox/core";
+import type { ExecResult, Sandbox, SandboxProvider } from "@universal/core";
 
 export type LocalProviderOptions = {
   defaultName?: string;

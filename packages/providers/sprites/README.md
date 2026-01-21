@@ -1,18 +1,18 @@
-## @universal-sandbox/sprites
+## @universal/sprites
 
 Sprites provider for Universal Sandbox.
 
 ### Install
 
 ```
-pnpm add @universal-sandbox/sprites
+pnpm add @universal/sprites
 ```
 
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@universal-sandbox/core";
-import { SpritesProvider } from "@universal-sandbox/sprites";
+import { UniversalSandbox } from "@universal/core";
+import { SpritesProvider } from "@universal/sprites";
 
 const sandbox = new UniversalSandbox({
   provider: new SpritesProvider({ token: process.env.SPRITES_TOKEN }),

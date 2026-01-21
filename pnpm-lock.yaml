@@ -37,7 +37,7 @@ importers:
 
   packages/providers/docker:
     dependencies:
-      '@universal-sandbox/core':
+      '@universal/core':
         specifier: workspace:*
         version: link:../../core
       dockerode:
@@ -53,13 +53,13 @@ importers:
       '@fly/sprites':
         specifier: ^0.0.1
         version: 0.0.1
-      '@universal-sandbox/core':
+      '@universal/core':
         specifier: workspace:*
         version: link:../../core
 
   packages/testing:
     dependencies:
-      '@universal-sandbox/core':
+      '@universal/core':
         specifier: workspace:*
         version: link:../core
 

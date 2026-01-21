@@ -1,18 +1,18 @@
-## @universal-sandbox/core
+## @universal/core
 
 Core types and runtime for Universal Sandbox.
 
 ### Install
 
 ```
-pnpm add @universal-sandbox/core
+pnpm add @universal/core
 ```
 
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@universal-sandbox/core";
-import { SpritesProvider } from "@universal-sandbox/sprites";
+import { UniversalSandbox } from "@universal/core";
+import { SpritesProvider } from "@universal/sprites";
 
 const sandbox = new UniversalSandbox({
   provider: new SpritesProvider({ token: process.env.SPRITES_TOKEN }),
