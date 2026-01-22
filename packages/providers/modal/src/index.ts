@@ -8,6 +8,7 @@ import type {
   SandboxId,
   SandboxProvider,
 } from "@usbx/core";
+import { readTextOrEmpty } from "./internal.js";
 
 export type ModalProviderOptions = {
   app?: App;
@@ -152,8 +153,8 @@ class ModalSandbox implements Sandbox<ModalSandboxClient, ModalExecOptions> {
 
     const process = await this.sandbox.exec([command, ...args], execOptions);
     const [stdout, stderr, exitCode] = await Promise.all([
-      process.stdout.readText(),
-      process.stderr.readText(),
+      readTextOrEmpty(process.stdout),
+      readTextOrEmpty(process.stderr),
       process.wait(),
     ]);
 

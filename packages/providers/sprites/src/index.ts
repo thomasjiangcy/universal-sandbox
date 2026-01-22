@@ -11,17 +11,11 @@ import type {
   SandboxId,
   SandboxProvider,
 } from "@usbx/core";
+import { normalizeExitCode, normalizeOutput } from "./internal.js";
 
 export type SpritesProviderOptions = {
   token?: string;
   client?: SpritesClient;
-};
-
-const normalizeOutput = (value: string | Buffer | undefined): string => {
-  if (!value) {
-    return "";
-  }
-  return Buffer.isBuffer(value) ? value.toString("utf8") : value;
 };
 
 export class SpritesProvider implements SandboxProvider<
@@ -97,7 +91,7 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
     return {
       stdout: normalizeOutput(result.stdout),
       stderr: normalizeOutput(result.stderr),
-      exitCode: result.exitCode,
+      exitCode: normalizeExitCode(result.exitCode),
     };
   }
 }
