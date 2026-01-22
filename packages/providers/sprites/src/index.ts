@@ -1,5 +1,9 @@
 import { SpritesClient } from "@fly/sprites";
 import type {
+  ExecOptions as SpritesExecOptions,
+  ExecResult as SpritesExecResult,
+} from "@fly/sprites";
+import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
@@ -7,22 +11,17 @@ import type {
   SandboxId,
   SandboxProvider,
 } from "@usbx/core";
+import { normalizeExitCode, normalizeOutput } from "./internal.js";
 
 export type SpritesProviderOptions = {
   token?: string;
   client?: SpritesClient;
 };
 
-type SpritesExecResult = {
-  stdout?: string;
-  stderr?: string;
-  exitCode?: number | null;
-};
-
 export class SpritesProvider implements SandboxProvider<
   ReturnType<SpritesClient["sprite"]>,
   SpritesClient,
-  Record<string, unknown>
+  SpritesExecOptions
 > {
   private client: SpritesClient;
 
@@ -45,7 +44,7 @@ export class SpritesProvider implements SandboxProvider<
 
   async create(
     options?: CreateOptions,
-  ): Promise<Sandbox<ReturnType<SpritesClient["sprite"]>, Record<string, unknown>>> {
+  ): Promise<Sandbox<ReturnType<SpritesClient["sprite"]>, SpritesExecOptions>> {
     if (!options?.name) {
       throw new Error("SpritesProvider.create requires a name.");
     }
@@ -56,16 +55,13 @@ export class SpritesProvider implements SandboxProvider<
 
   async get(
     idOrName: string,
-  ): Promise<Sandbox<ReturnType<SpritesClient["sprite"]>, Record<string, unknown>>> {
+  ): Promise<Sandbox<ReturnType<SpritesClient["sprite"]>, SpritesExecOptions>> {
     const sprite = this.client.sprite(idOrName);
     return new SpritesSandbox(idOrName, sprite);
   }
 }
 
-class SpritesSandbox implements Sandbox<
-  ReturnType<SpritesClient["sprite"]>,
-  Record<string, unknown>
-> {
+class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, SpritesExecOptions> {
   id: SandboxId;
   name?: string;
   native: ReturnType<SpritesClient["sprite"]>;
@@ -82,7 +78,7 @@ class SpritesSandbox implements Sandbox<
   async exec(
     command: string,
     args: string[] = [],
-    options?: ExecOptions<Record<string, unknown>>,
+    options?: ExecOptions<SpritesExecOptions>,
   ): Promise<ExecResult> {
     if (options?.stdin !== undefined) {
       throw new Error("SpritesProvider.exec does not support stdin; use native for streaming.");
@@ -90,16 +86,12 @@ class SpritesSandbox implements Sandbox<
 
     const providerOptions = options?.providerOptions;
 
-    const result = (await this.sprite.execFile(
-      command,
-      args,
-      providerOptions,
-    )) as SpritesExecResult;
+    const result: SpritesExecResult = await this.sprite.execFile(command, args, providerOptions);
 
     return {
-      stdout: result.stdout ?? "",
-      stderr: result.stderr ?? "",
-      exitCode: result.exitCode ?? null,
+      stdout: normalizeOutput(result.stdout),
+      stderr: normalizeOutput(result.stderr),
+      exitCode: normalizeExitCode(result.exitCode),
     };
   }
 }

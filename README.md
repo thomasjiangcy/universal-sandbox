@@ -7,6 +7,9 @@ Unified TypeScript API for interacting with remote and local sandbox providers.
 - `@usbx/core`
 - `@usbx/sprites`
 - `@usbx/docker`
+- `@usbx/e2b`
+- `@usbx/daytona`
+- `@usbx/modal`
 - `@usbx/testing`
 
 ## Development
@@ -16,6 +19,13 @@ Unified TypeScript API for interacting with remote and local sandbox providers.
 - `pnpm format`
 - `pnpm typecheck`
 - `pnpm test`
+
+## Provider E2E Testing
+
+- Copy `.env.providers.example` to `.env.providers` and add provider credentials
+- Run all provider e2e tests: `pnpm test:providers`
+- Run a subset: `pnpm test:providers --providers e2b,sprites`
+- List providers: `pnpm test:providers --list`
 
 ## Tooling
 

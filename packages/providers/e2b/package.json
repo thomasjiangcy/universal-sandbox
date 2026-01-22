@@ -1,5 +1,5 @@
 {
-  "name": "@usbx/core",
+  "name": "@usbx/e2b",
   "version": "0.1.0-alpha.0",
   "private": false,
   "type": "module",
@@ -21,6 +21,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run src --passWithNoTests",
     "test:e2e": "vitest run e2e"
+  },
+  "dependencies": {
+    "@usbx/core": "workspace:*",
+    "e2b": "^2.10.3"
   },
   "engines": {
     "node": ">=24.13.0 <25",
