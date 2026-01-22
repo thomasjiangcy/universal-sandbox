@@ -15,6 +15,7 @@
     "e2b-provider-alpha",
     "initial-alpha-core-docker-testing",
     "modal-provider-alpha",
+    "provider-delete-api",
     "sprites-output-alpha"
   ]
 }
