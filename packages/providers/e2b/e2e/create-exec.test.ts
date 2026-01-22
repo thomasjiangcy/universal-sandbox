@@ -11,7 +11,7 @@ describe("e2b e2e create-exec", () => {
       const result = await sandbox.exec("echo", ["hello"]);
       expect(result.stdout).toContain("hello");
     } finally {
-      await sandbox.native.kill();
+      await provider.delete(sandbox.id);
     }
   }, 20000);
 });

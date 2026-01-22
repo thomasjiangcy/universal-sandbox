@@ -40,5 +40,6 @@ export interface SandboxProvider<
 > {
   create(options?: CreateOptions): Promise<Sandbox<TSandboxNative, TProviderOptions>>;
   get(idOrName: string): Promise<Sandbox<TSandboxNative, TProviderOptions>>;
+  delete(idOrName: string): Promise<void>;
   native?: TProviderNative;
 }

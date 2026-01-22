@@ -80,6 +80,11 @@ export class DaytonaProvider implements SandboxProvider<
     const sandbox = await this.client.get(idOrName);
     return new DaytonaSandbox(sandbox);
   }
+
+  async delete(idOrName: string): Promise<void> {
+    const sandbox = await this.client.get(idOrName);
+    await this.client.delete(sandbox);
+  }
 }
 
 class DaytonaSandbox implements Sandbox<DaytonaSandboxClient, DaytonaExecOptions> {

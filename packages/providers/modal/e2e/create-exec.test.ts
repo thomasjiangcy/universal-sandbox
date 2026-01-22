@@ -18,7 +18,7 @@ describe("modal e2e create-exec", () => {
       const result = await sandbox.exec("echo", ["hello"]);
       expect(result.stdout).toContain("hello");
     } finally {
-      await sandbox.native.terminate();
+      await provider.delete(sandbox.id);
       try {
         const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
         await client.cpClient.appStop({
@@ -54,7 +54,7 @@ describe("modal e2e create-exec", () => {
       expect(result.stdout).toEqual(expect.any(String));
       expect(result.stderr).toEqual(expect.any(String));
     } finally {
-      await sandbox.native.terminate();
+      await provider.delete(sandbox.id);
       try {
         const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
         await client.cpClient.appStop({

@@ -14,7 +14,7 @@ describe("sprites e2e create-exec", () => {
       expect(result.stdout).toContain("hello");
       expect(result.exitCode).toBe(0);
     } finally {
-      await provider.native.deleteSprite(name);
+      await provider.delete(sandbox.id);
     }
   }, 20000);
 });

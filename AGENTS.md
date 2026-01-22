@@ -54,6 +54,7 @@
 ## Testing notes
 
 - E2E tests are defined for providers (see `packages/providers/*/e2e/`).
+- Provider E2E runs should use `pnpm test:providers` from the repo root (see `package.json`).
 - If changing behavior, update or add tests and run the relevant `pnpm test`/`pnpm test:e2e`.
 
 ## Formatting and linting

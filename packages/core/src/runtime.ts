@@ -30,4 +30,8 @@ export class UniversalSandbox<
   async get(idOrName: string): Promise<Sandbox<TSandboxNative, TProviderOptions>> {
     return this.provider.get(idOrName);
   }
+
+  async delete(idOrName: string): Promise<void> {
+    return this.provider.delete(idOrName);
+  }
 }

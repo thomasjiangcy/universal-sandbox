@@ -77,6 +77,11 @@ export class ModalProvider implements SandboxProvider<
     return new ModalSandbox(sandbox);
   }
 
+  async delete(idOrName: string): Promise<void> {
+    const sandbox = await ModalSandboxClient.fromId(idOrName);
+    await sandbox.terminate();
+  }
+
   private async resolveApp(): Promise<App> {
     if (this.app) {
       return this.app;

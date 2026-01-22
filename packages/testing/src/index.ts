@@ -49,4 +49,11 @@ export class LocalProvider implements SandboxProvider<undefined, undefined, unde
     }
     return sandbox;
   }
+
+  async delete(idOrName: string): Promise<void> {
+    const existed = this.sandboxes.delete(idOrName);
+    if (!existed) {
+      throw new Error(`Sandbox not found: ${idOrName}`);
+    }
+  }
 }
