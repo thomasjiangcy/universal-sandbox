@@ -9,6 +9,7 @@ import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
+  ExecStream,
   Sandbox,
   SandboxId,
   SandboxProvider,
@@ -37,6 +38,67 @@ const escapeShellArg = (value: string): string => {
 
 const buildCommand = (command: string, args: string[]): string =>
   [command, ...args].map(escapeShellArg).join(" ");
+
+const buildShellCommand = (
+  command: string,
+  args: string[],
+  options?: ExecOptions<DaytonaExecOptions>,
+): string => {
+  const baseCommand = buildCommand(command, args);
+  const envEntries = options?.env ? Object.entries(options.env) : [];
+  const envPrefix =
+    envEntries.length > 0
+      ? `env ${envEntries.map(([key, value]) => `${key}=${escapeShellArg(value)}`).join(" ")} `
+      : "";
+  const commandWithEnv = `${envPrefix}${baseCommand}`;
+
+  const commandWithStdin =
+    options?.stdin !== undefined
+      ? `printf '%s' '${stdinToBase64(options.stdin)}' | base64 -d | ${commandWithEnv}`
+      : commandWithEnv;
+
+  if (options?.cwd) {
+    return `cd ${escapeShellArg(options.cwd)} && ${commandWithStdin}`;
+  }
+
+  return commandWithStdin;
+};
+
+const stdinToBase64 = (stdin: string | Uint8Array): string =>
+  (typeof stdin === "string" ? Buffer.from(stdin, "utf8") : Buffer.from(stdin)).toString("base64");
+
+const createTextStream = () => {
+  const encoder = new TextEncoder();
+  let controller: ReadableStreamDefaultController<Uint8Array> | null = null;
+
+  const readable = new ReadableStream<Uint8Array>({
+    start(streamController) {
+      controller = streamController;
+    },
+  });
+
+  const enqueue = (chunk: string) => {
+    if (!controller) {
+      return;
+    }
+    controller.enqueue(encoder.encode(chunk));
+  };
+
+  const close = () => {
+    controller?.close();
+  };
+
+  const error = (err: unknown) => {
+    controller?.error(err);
+  };
+
+  return {
+    readable,
+    enqueue,
+    close,
+    error,
+  };
+};
 
 export class DaytonaProvider implements SandboxProvider<
   DaytonaSandboxClient,
@@ -122,6 +184,69 @@ class DaytonaSandbox implements Sandbox<DaytonaSandboxClient, DaytonaExecOptions
       stdout: result.artifacts?.stdout ?? result.result ?? "",
       stderr: "",
       exitCode: result.exitCode ?? null,
+    };
+  }
+
+  async execStream(
+    command: string,
+    args: string[] = [],
+    options?: ExecOptions<DaytonaExecOptions>,
+  ): Promise<ExecStream> {
+    const stdoutStream = createTextStream();
+    const stderrStream = createTextStream();
+
+    const sessionId = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    await this.sandbox.process.createSession(sessionId);
+
+    const commandString = buildShellCommand(command, args, options);
+    const response = await this.sandbox.process.executeSessionCommand(
+      sessionId,
+      {
+        command: commandString,
+        runAsync: true,
+      },
+      options?.timeoutSeconds,
+    );
+
+    if (!response.cmdId) {
+      await this.sandbox.process.deleteSession(sessionId);
+      throw new Error("DaytonaProvider.execStream did not return a command id.");
+    }
+
+    const logsPromise = this.sandbox.process.getSessionCommandLogs(
+      sessionId,
+      response.cmdId,
+      (chunk) => stdoutStream.enqueue(chunk),
+      (chunk) => stderrStream.enqueue(chunk),
+    );
+
+    logsPromise
+      .then(() => {
+        stdoutStream.close();
+        stderrStream.close();
+      })
+      .catch((error) => {
+        stdoutStream.error(error);
+        stderrStream.error(error);
+      });
+
+    const exitCode = logsPromise
+      .then(async () => {
+        const commandInfo = await this.sandbox.process.getSessionCommand(sessionId, response.cmdId);
+        return commandInfo.exitCode ?? null;
+      })
+      .finally(async () => {
+        try {
+          await this.sandbox.process.deleteSession(sessionId);
+        } catch {
+          // Best-effort cleanup.
+        }
+      });
+
+    return {
+      stdout: stdoutStream.readable,
+      stderr: stderrStream.readable,
+      exitCode,
     };
   }
 }

@@ -1,9 +1,10 @@
 import Docker from "dockerode";
-import { PassThrough } from "node:stream";
+import { PassThrough, Readable, Writable } from "node:stream";
 import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
+  ExecStream,
   Sandbox,
   SandboxId,
   SandboxProvider,
@@ -197,4 +198,85 @@ class DockerSandbox implements Sandbox<Docker.Container, DockerExecOptions> {
       exitCode: execInfo.ExitCode ?? null,
     };
   }
+
+  async execStream(
+    command: string,
+    args: string[] = [],
+    options?: ExecOptions<DockerExecOptions>,
+  ): Promise<ExecStream> {
+    const inspect = await this.container.inspect();
+    if (!inspect.State?.Running) {
+      await this.container.start();
+    }
+
+    const providerOptions = options?.providerOptions;
+    const env = options?.env
+      ? Object.entries(options.env).map(([key, value]) => `${key}=${value}`)
+      : undefined;
+    const isTty = providerOptions?.tty ?? false;
+
+    const exec = await this.container.exec({
+      Cmd: [command, ...args],
+      AttachStdout: true,
+      AttachStderr: true,
+      AttachStdin: true,
+      WorkingDir: options?.cwd,
+      Env: env,
+      Tty: isTty,
+      Privileged: providerOptions?.privileged ?? false,
+      User: providerOptions?.user,
+    });
+
+    const stream = await exec.start({ hijack: true, stdin: true });
+
+    const stdoutStream = new PassThrough();
+    const stderrStream = new PassThrough();
+
+    if (isTty) {
+      stream.pipe(stdoutStream);
+    } else {
+      this.client.modem.demuxStream(stream, stdoutStream, stderrStream);
+    }
+
+    if (options?.stdin !== undefined) {
+      await writeToNodeStream(stream, options.stdin);
+    }
+
+    const exitCode = new Promise<number | null>((resolve, reject) => {
+      stream.on("end", async () => {
+        stdoutStream.end();
+        stderrStream.end();
+        try {
+          const execInfo = await exec.inspect();
+          resolve(execInfo.ExitCode ?? null);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      stream.on("error", (error) => {
+        stdoutStream.destroy(error);
+        stderrStream.destroy(error);
+        reject(error);
+      });
+    });
+
+    return {
+      stdout: Readable.toWeb(stdoutStream),
+      stderr: Readable.toWeb(stderrStream),
+      stdin: Writable.toWeb(stream),
+      exitCode,
+    };
+  }
 }
+
+const writeToNodeStream = async (
+  stream: NodeJS.WritableStream,
+  input: string | Uint8Array,
+): Promise<void> => {
+  const buffer = typeof input === "string" ? Buffer.from(input, "utf8") : input;
+
+  await new Promise<void>((resolve, reject) => {
+    stream.once("error", reject);
+    stream.end(buffer, resolve);
+  });
+};

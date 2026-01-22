@@ -4,6 +4,7 @@ import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
+  ExecStream,
   Sandbox,
   SandboxId,
   SandboxProvider,
@@ -29,6 +30,51 @@ const escapeShellArg = (value: string): string => {
 
 const buildCommand = (command: string, args: string[]): string =>
   [command, ...args].map(escapeShellArg).join(" ");
+
+const buildCommandWithStdin = (
+  command: string,
+  args: string[],
+  stdin: string | Uint8Array,
+): string => {
+  const baseCommand = buildCommand(command, args);
+  const payload = typeof stdin === "string" ? Buffer.from(stdin, "utf8") : Buffer.from(stdin);
+  const base64 = payload.toString("base64");
+
+  return `printf '%s' '${base64}' | base64 -d | ${baseCommand}`;
+};
+
+const createTextStream = () => {
+  const encoder = new TextEncoder();
+  let controller: ReadableStreamDefaultController<Uint8Array> | null = null;
+
+  const readable = new ReadableStream<Uint8Array>({
+    start(streamController) {
+      controller = streamController;
+    },
+  });
+
+  const enqueue = (chunk: string) => {
+    if (!controller) {
+      return;
+    }
+    controller.enqueue(encoder.encode(chunk));
+  };
+
+  const close = () => {
+    controller?.close();
+  };
+
+  const error = (err: unknown) => {
+    controller?.error(err);
+  };
+
+  return {
+    readable,
+    enqueue,
+    close,
+    error,
+  };
+};
 
 export class E2BProvider implements SandboxProvider<
   E2BSandboxClient,
@@ -136,6 +182,68 @@ class E2BSandbox implements Sandbox<E2BSandboxClient, E2BExecOptions> {
       stdout: result.stdout,
       stderr: result.stderr,
       exitCode: result.exitCode,
+    };
+  }
+
+  async execStream(
+    command: string,
+    args: string[] = [],
+    options?: ExecOptions<E2BExecOptions>,
+  ): Promise<ExecStream> {
+    const providerOnStdout = options?.providerOptions?.onStdout;
+    const providerOnStderr = options?.providerOptions?.onStderr;
+
+    const stdoutStream = createTextStream();
+    const stderrStream = createTextStream();
+
+    const commandString =
+      options?.stdin !== undefined
+        ? buildCommandWithStdin(command, args, options.stdin)
+        : buildCommand(command, args);
+
+    const providerOptions: CommandStartOpts & { background: false } = {
+      ...options?.providerOptions,
+      background: false,
+      onStdout: (data) => {
+        stdoutStream.enqueue(data);
+        if (providerOnStdout) {
+          void providerOnStdout(data);
+        }
+      },
+      onStderr: (data) => {
+        stderrStream.enqueue(data);
+        if (providerOnStderr) {
+          void providerOnStderr(data);
+        }
+      },
+    };
+
+    if (options?.cwd !== undefined) {
+      providerOptions.cwd = options.cwd;
+    }
+    if (options?.env !== undefined) {
+      providerOptions.envs = options.env;
+    }
+    if (options?.timeoutSeconds !== undefined) {
+      providerOptions.timeoutMs = options.timeoutSeconds * 1000;
+    }
+
+    const resultPromise = this.sandbox.commands.run(commandString, providerOptions);
+
+    resultPromise
+      .then(() => {
+        stdoutStream.close();
+        stderrStream.close();
+      })
+      .catch((error) => {
+        stdoutStream.error(error);
+        stderrStream.error(error);
+      });
+
+    return {
+      stdout: stdoutStream.readable,
+      stderr: stderrStream.readable,
+      exitCode: resultPromise.then((result) => result.exitCode ?? null),
     };
   }
 }

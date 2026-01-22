@@ -4,6 +4,7 @@ import type {
   CreateOptions,
   ExecOptions as UniversalExecOptions,
   ExecResult,
+  ExecStream,
   Sandbox,
   SandboxId,
   SandboxProvider,
@@ -169,4 +170,55 @@ class ModalSandbox implements Sandbox<ModalSandboxClient, ModalExecOptions> {
       exitCode,
     };
   }
+
+  async execStream(
+    command: string,
+    args: string[] = [],
+    options?: UniversalExecOptions<ModalExecOptions>,
+  ): Promise<ExecStream> {
+    if (options?.env !== undefined) {
+      throw new Error(
+        "ModalProvider.execStream does not support env; use secrets or images instead.",
+      );
+    }
+
+    const { mode: _mode, ...providerOptions } = options?.providerOptions ?? {};
+    const execOptions: SandboxExecParams & { mode?: "binary" } = {
+      ...providerOptions,
+      mode: "binary",
+      stdout: options?.providerOptions?.stdout ?? "pipe",
+      stderr: options?.providerOptions?.stderr ?? "pipe",
+    };
+
+    if (options?.cwd !== undefined) {
+      execOptions.workdir = options.cwd;
+    }
+    if (options?.timeoutSeconds !== undefined) {
+      execOptions.timeoutMs = options.timeoutSeconds * 1000;
+    }
+
+    const process = await this.sandbox.exec([command, ...args], execOptions);
+
+    if (options?.stdin !== undefined) {
+      await writeToWebStream(process.stdin, options.stdin);
+    }
+
+    return {
+      stdout: process.stdout,
+      stderr: process.stderr,
+      stdin: process.stdin,
+      exitCode: process.wait(),
+    };
+  }
 }
+
+const writeToWebStream = async (
+  stream: WritableStream<Uint8Array>,
+  input: string | Uint8Array,
+): Promise<void> => {
+  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  const writer = stream.getWriter();
+  await writer.write(bytes);
+  await writer.close();
+  writer.releaseLock();
+};

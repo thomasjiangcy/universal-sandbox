@@ -1,8 +1,20 @@
-import type { ExecResult, Sandbox, SandboxProvider } from "@usbx/core";
+import type { ExecResult, ExecStream, Sandbox, SandboxProvider } from "@usbx/core";
 
 export type LocalProviderOptions = {
   defaultName?: string;
 };
+
+const encodeText = (value: string): Uint8Array => new TextEncoder().encode(value);
+
+const streamFromText = (value: string): ReadableStream<Uint8Array> =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (value.length) {
+        controller.enqueue(encodeText(value));
+      }
+      controller.close();
+    },
+  });
 
 export class LocalSandbox implements Sandbox<undefined, undefined> {
   id: string;
@@ -18,6 +30,14 @@ export class LocalSandbox implements Sandbox<undefined, undefined> {
       stdout: "hello\n",
       stderr: "",
       exitCode: 0,
+    };
+  }
+
+  async execStream(_command: string, _args: string[] = []): Promise<ExecStream> {
+    return {
+      stdout: streamFromText("hello\n"),
+      stderr: streamFromText(""),
+      exitCode: Promise.resolve(0),
     };
   }
 }

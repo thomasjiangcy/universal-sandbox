@@ -1,4 +1,5 @@
 import { SpritesClient } from "@fly/sprites";
+import { Readable, Writable } from "node:stream";
 import type {
   ExecOptions as SpritesExecOptions,
   ExecResult as SpritesExecResult,
@@ -7,6 +8,7 @@ import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
+  ExecStream,
   Sandbox,
   SandboxId,
   SandboxProvider,
@@ -98,4 +100,43 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
       exitCode: normalizeExitCode(result.exitCode),
     };
   }
+
+  async execStream(
+    command: string,
+    args: string[] = [],
+    options?: ExecOptions<SpritesExecOptions>,
+  ): Promise<ExecStream> {
+    const providerOptions = options?.providerOptions;
+    const cmd = this.sprite.spawn(command, args, providerOptions);
+
+    cmd.on("exit", () => {
+      cmd.stdout.end();
+      cmd.stderr.end();
+    });
+
+    cmd.on("error", (error) => {
+      cmd.stdout.destroy(error);
+      cmd.stderr.destroy(error);
+    });
+
+    if (options?.stdin !== undefined) {
+      await writeToNodeStream(cmd.stdin, options.stdin);
+    }
+
+    return {
+      stdout: Readable.toWeb(cmd.stdout),
+      stderr: Readable.toWeb(cmd.stderr),
+      stdin: Writable.toWeb(cmd.stdin),
+      exitCode: cmd.wait().then((code) => (Number.isFinite(code) ? code : null)),
+    };
+  }
 }
+
+const writeToNodeStream = async (stream: Writable, input: string | Uint8Array): Promise<void> => {
+  const buffer = typeof input === "string" ? Buffer.from(input, "utf8") : input;
+
+  await new Promise<void>((resolve, reject) => {
+    stream.once("error", reject);
+    stream.end(buffer, resolve);
+  });
+};
