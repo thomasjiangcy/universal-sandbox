@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import { SpritesProvider } from "../src/index.js";
 
+const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<string> => {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let output = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      break;
+    }
+    if (value) {
+      output += decoder.decode(value, { stream: true });
+    }
+  }
+
+  output += decoder.decode();
+  return output;
+};
+
 describe("sprites e2e create-exec", () => {
   it("creates a sprite and runs a command", async () => {
     const name = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -13,6 +32,23 @@ describe("sprites e2e create-exec", () => {
       const result = await sandbox.exec("echo", ["hello"]);
       expect(result.stdout).toContain("hello");
       expect(result.exitCode).toBe(0);
+    } finally {
+      await provider.delete(sandbox.id);
+    }
+  }, 20000);
+
+  it("streams a command", async () => {
+    const name = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const token = process.env.SPRITES_TOKEN;
+    const provider = new SpritesProvider({ token });
+
+    const sandbox = await provider.create({ name });
+    try {
+      const result = await sandbox.execStream("echo", ["hello"]);
+      const stdout = await readStreamText(result.stdout);
+
+      await expect(result.exitCode).resolves.toBe(0);
+      expect(stdout).toContain("hello");
     } finally {
       await provider.delete(sandbox.id);
     }
