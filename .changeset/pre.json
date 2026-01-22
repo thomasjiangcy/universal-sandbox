@@ -13,6 +13,7 @@
   "changesets": [
     "daytona-provider-alpha",
     "e2b-provider-alpha",
+    "exec-stream-api",
     "initial-alpha-core-docker-testing",
     "modal-provider-alpha",
     "provider-delete-api",
