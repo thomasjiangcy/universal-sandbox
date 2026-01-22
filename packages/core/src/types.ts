@@ -1,3 +1,5 @@
+import type { ReadableStream, WritableStream } from "node:stream/web";
+
 export type SandboxId = string;
 
 export interface CreateOptions {
@@ -22,6 +24,13 @@ export interface ExecResult {
   exitCode: number | null;
 }
 
+export interface ExecStream {
+  stdout: ReadableStream<Uint8Array>;
+  stderr: ReadableStream<Uint8Array>;
+  stdin?: WritableStream<Uint8Array>;
+  exitCode: Promise<number | null>;
+}
+
 export interface Sandbox<TNative = unknown, TProviderOptions = unknown> {
   id: SandboxId;
   name?: string;
@@ -30,6 +39,11 @@ export interface Sandbox<TNative = unknown, TProviderOptions = unknown> {
     args?: string[],
     options?: ExecOptions<TProviderOptions>,
   ): Promise<ExecResult>;
+  execStream(
+    command: string,
+    args?: string[],
+    options?: ExecOptions<TProviderOptions>,
+  ): Promise<ExecStream>;
   native?: TNative;
 }
 
