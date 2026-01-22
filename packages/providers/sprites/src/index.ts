@@ -59,6 +59,10 @@ export class SpritesProvider implements SandboxProvider<
     const sprite = this.client.sprite(idOrName);
     return new SpritesSandbox(idOrName, sprite);
   }
+
+  async delete(idOrName: string): Promise<void> {
+    await this.client.deleteSprite(idOrName);
+  }
 }
 
 class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, SpritesExecOptions> {

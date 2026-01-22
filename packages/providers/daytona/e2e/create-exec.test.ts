@@ -11,7 +11,7 @@ describe("daytona e2e create-exec", () => {
       const result = await sandbox.exec("echo", ["hello"]);
       expect(result.stdout).toContain("hello");
     } finally {
-      await provider.native.delete(sandbox.native, 60);
+      await provider.delete(sandbox.id);
     }
   }, 30000);
 });

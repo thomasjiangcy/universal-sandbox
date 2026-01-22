@@ -95,6 +95,11 @@ export class DockerProvider implements SandboxProvider<
     return new DockerSandbox(info.Id, name, container, this.client);
   }
 
+  async delete(idOrName: string): Promise<void> {
+    const container = this.client.getContainer(idOrName);
+    await container.remove({ force: true });
+  }
+
   private async ensureImage(image: string): Promise<void> {
     try {
       await this.client.getImage(image).inspect();

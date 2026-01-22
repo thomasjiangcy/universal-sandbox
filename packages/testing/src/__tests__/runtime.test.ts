@@ -25,4 +25,14 @@ describe("UniversalSandbox", () => {
     expect(result.stdout).toContain("hello");
     expect(result.exitCode).toBe(0);
   });
+
+  it("deletes a sandbox through the provider", async () => {
+    const provider = new LocalProvider({ defaultName: "local-test" });
+    const runtime = new UniversalSandbox({ provider });
+    await runtime.create({ name: "sbx-3" });
+
+    await runtime.delete("sbx-3");
+
+    await expect(runtime.get("sbx-3")).rejects.toThrow("Sandbox not found");
+  });
 });

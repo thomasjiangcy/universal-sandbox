@@ -82,6 +82,11 @@ export class E2BProvider implements SandboxProvider<
     const sandbox = await E2BSandboxClient.connect(idOrName, this.connectOptions);
     return new E2BSandbox(sandbox);
   }
+
+  async delete(idOrName: string): Promise<void> {
+    const sandbox = await E2BSandboxClient.connect(idOrName, this.connectOptions);
+    await sandbox.kill();
+  }
 }
 
 class E2BSandbox implements Sandbox<E2BSandboxClient, E2BExecOptions> {
