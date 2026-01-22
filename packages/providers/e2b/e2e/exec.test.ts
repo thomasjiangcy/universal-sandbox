@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { DaytonaProvider } from "../src/index.js";
+import { E2BProvider } from "../src/index.js";
 
-describe("daytona e2e create-exec", () => {
+describe("e2b e2e exec", () => {
   it("creates a sandbox and runs a command", async () => {
-    const provider = new DaytonaProvider({ createParams: { language: "typescript" } });
+    const provider = new E2BProvider();
 
-    const sandbox = await provider.create({ name: "usbx-daytona" });
+    const sandbox = await provider.create();
     try {
       const result = await sandbox.exec("echo", ["hello"]);
       expect(result.stdout).toContain("hello");
     } finally {
       await provider.delete(sandbox.id);
     }
-  }, 30000);
+  }, 20000);
 });

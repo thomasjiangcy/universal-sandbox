@@ -5,6 +5,7 @@
     "build": "turbo run build",
     "lint": "oxlint .",
     "format": "oxfmt --write .",
+    "lint-staged": "lint-staged",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
@@ -18,12 +19,16 @@
     "@changesets/cli": "^2.27.11",
     "@types/node": "^25.0.9",
     "lefthook": "^2.0.15",
+    "lint-staged": "^16.1.6",
     "oxfmt": "^0.26.0",
     "oxlint": "^1.41.0",
     "tsdown": "^0.20.0-beta.4",
     "turbo": "^2.7.5",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}": "oxfmt --write"
   },
   "engines": {
     "node": ">=24.13.0 <25",

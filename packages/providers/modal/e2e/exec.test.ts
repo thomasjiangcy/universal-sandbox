@@ -4,7 +4,7 @@ import { ModalClient } from "modal";
 
 import { ModalProvider } from "../src/index.js";
 
-describe("modal e2e create-exec", () => {
+describe("modal e2e exec", () => {
   it("creates a sandbox and runs a command", async () => {
     const client = new ModalClient();
     const app = await client.apps.fromName("usbx-e2e", { createIfMissing: true });

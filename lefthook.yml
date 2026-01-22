@@ -3,7 +3,7 @@ pre-commit:
     lint:
       run: pnpm lint
     format:
-      run: pnpm format && git add -u
+      run: pnpm lint-staged
 
 pre-push:
   commands:

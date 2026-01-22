@@ -1,4 +1,5 @@
 import { SpritesClient } from "@fly/sprites";
+import { Readable, Writable } from "node:stream";
 import type {
   ExecOptions as SpritesExecOptions,
   ExecResult as SpritesExecResult,
@@ -7,6 +8,7 @@ import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
+  ExecStream,
   Sandbox,
   SandboxId,
   SandboxProvider,
@@ -98,4 +100,85 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
       exitCode: normalizeExitCode(result.exitCode),
     };
   }
+
+  async execStream(
+    command: string,
+    args: string[] = [],
+    options?: ExecOptions<SpritesExecOptions>,
+  ): Promise<ExecStream> {
+    const providerOptions = options?.providerOptions;
+    const cmd = this.sprite.spawn(command, args, providerOptions);
+
+    cmd.on("exit", () => {
+      cmd.stdout.destroy();
+      cmd.stderr.destroy();
+    });
+
+    cmd.on("error", (error) => {
+      cmd.stdout.destroy(error);
+      cmd.stderr.destroy(error);
+    });
+
+    if (options?.stdin !== undefined) {
+      await writeToNodeStream(cmd.stdin, options.stdin);
+    }
+
+    return {
+      stdout: nodeReadableToWeb(cmd.stdout),
+      stderr: nodeReadableToWeb(cmd.stderr),
+      stdin: nodeWritableToWeb(cmd.stdin),
+      exitCode: cmd.wait().then((code) => (Number.isFinite(code) ? code : null)),
+    };
+  }
 }
+
+const writeToNodeStream = async (stream: Writable, input: string | Uint8Array): Promise<void> => {
+  const buffer = typeof input === "string" ? Buffer.from(input, "utf8") : input;
+
+  await new Promise<void>((resolve, reject) => {
+    stream.once("error", reject);
+    stream.end(buffer, resolve);
+  });
+};
+
+const nodeReadableToWeb = (stream: Readable): ReadableStream<Uint8Array> =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      stream.on("data", (chunk) => {
+        if (typeof chunk === "string") {
+          controller.enqueue(new TextEncoder().encode(chunk));
+          return;
+        }
+        controller.enqueue(Buffer.isBuffer(chunk) ? chunk : new Uint8Array(chunk));
+      });
+      stream.on("end", () => controller.close());
+      stream.on("error", (error: Error) => controller.error(error));
+    },
+    cancel() {
+      stream.destroy();
+    },
+  });
+
+const nodeWritableToWeb = (stream: Writable): WritableStream<Uint8Array> =>
+  new WritableStream<Uint8Array>({
+    write(chunk) {
+      return new Promise<void>((resolve, reject) => {
+        stream.write(chunk, (error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    },
+    close() {
+      return new Promise<void>((resolve, reject) => {
+        stream.once("error", (error: Error) => reject(error));
+        stream.end(() => resolve());
+      });
+    },
+    abort(reason) {
+      stream.destroy(reason instanceof Error ? reason : undefined);
+    },
+  });
