@@ -67,7 +67,9 @@ export class DaytonaProvider implements SandboxProvider<
       ? { ...this.createParams }
       : undefined;
     if (options?.name) {
-      createParams = createParams ? { ...createParams, name: options.name } : { name: options.name };
+      createParams = createParams
+        ? { ...createParams, name: options.name }
+        : { name: options.name };
     }
 
     const sandbox = await this.client.create(createParams, this.createOptions);

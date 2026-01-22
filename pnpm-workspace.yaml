@@ -3,7 +3,9 @@ packages:
   - packages/providers/*
 
 onlyBuiltDependencies:
+  - cbor-extract
   - cpu-features
   - esbuild
+  - lefthook
   - protobufjs
   - ssh2
