@@ -1,0 +1,14 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@usbx/core": "0.0.0",
+    "@usbx/daytona": "0.0.0",
+    "@usbx/docker": "0.0.0",
+    "@usbx/e2b": "0.0.0",
+    "@usbx/modal": "0.0.0",
+    "@usbx/sprites": "0.0.0",
+    "@usbx/testing": "0.0.0"
+  },
+  "changesets": []
+}
