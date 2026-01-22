@@ -20,4 +20,5 @@ Thanks for your interest in contributing to Universal Sandbox.
 
 - Keep PRs focused and small.
 - Update or add tests when changing behavior.
+- Add a changeset for user-facing changes: `pnpm changeset`.
 - Ensure `pnpm lint` and `pnpm typecheck` pass.
