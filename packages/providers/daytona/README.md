@@ -1,0 +1,34 @@
+## @usbx/daytona
+
+Daytona provider for Universal Sandbox.
+
+### Install
+
+```
+pnpm add @usbx/daytona
+```
+
+### Usage
+
+```ts
+import { UniversalSandbox } from "@usbx/core";
+import { DaytonaProvider } from "@usbx/daytona";
+
+const sandbox = new UniversalSandbox({
+  provider: new DaytonaProvider({
+    createParams: { language: "typescript" },
+  }),
+});
+
+const sbx = await sandbox.create({ name: "my-daytona-sbx" });
+const result = await sbx.exec("echo", ["hello"]);
+```
+
+### Notes
+
+- Exec stdin is not supported in the unified API yet.
+- `executeCommand` does not return stderr, so `stderr` is always empty.
+
+### Links
+
+- https://www.daytona.io/docs/en/typescript-sdk/

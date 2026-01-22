@@ -7,6 +7,9 @@ Unified TypeScript API for interacting with remote and local sandbox providers.
 - `@usbx/core`
 - `@usbx/sprites`
 - `@usbx/docker`
+- `@usbx/e2b`
+- `@usbx/daytona`
+- `@usbx/modal`
 - `@usbx/testing`
 
 ## Development

@@ -13,8 +13,7 @@ describe("docker e2e create-exec", () => {
       const result = await sandbox.exec("echo", ["hello"]);
       expect(result.stdout).toContain("hello");
     } finally {
-      const container = sandbox.native as { remove: (opts: { force: boolean }) => Promise<void> };
-      await container.remove({ force: true });
+      await sandbox.native.remove({ force: true });
     }
   }, 20000);
 });

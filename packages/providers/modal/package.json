@@ -1,0 +1,33 @@
+{
+  "name": "@usbx/modal",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts --format esm --dts --sourcemap --target es2022 --out-dir dist",
+    "lint": "oxlint src",
+    "format": "oxfmt --write src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run src --passWithNoTests",
+    "test:e2e": "vitest run e2e"
+  },
+  "dependencies": {
+    "@usbx/core": "workspace:*",
+    "modal": "^0.6.0"
+  },
+  "engines": {
+    "node": ">=24.13.0 <25",
+    "pnpm": ">=10.28.1 <11"
+  }
+}
