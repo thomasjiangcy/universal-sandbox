@@ -1,5 +1,3 @@
-import type { ReadableStream, WritableStream } from "node:stream/web";
-
 export type SandboxId = string;
 
 export interface CreateOptions {

@@ -1,5 +1,5 @@
 import Docker from "dockerode";
-import { PassThrough, Readable, Writable } from "node:stream";
+import { PassThrough } from "node:stream";
 import type {
   CreateOptions,
   ExecOptions,
@@ -261,13 +261,59 @@ class DockerSandbox implements Sandbox<Docker.Container, DockerExecOptions> {
     });
 
     return {
-      stdout: Readable.toWeb(stdoutStream),
-      stderr: Readable.toWeb(stderrStream),
-      stdin: Writable.toWeb(stream),
+      stdout: nodeReadableToWeb(stdoutStream),
+      stderr: nodeReadableToWeb(stderrStream),
+      stdin: nodeWritableToWeb(stream),
       exitCode,
     };
   }
 }
+
+const nodeReadableToWeb = (stream: NodeJS.ReadableStream): ReadableStream<Uint8Array> =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      stream.on("data", (chunk) => {
+        if (typeof chunk === "string") {
+          controller.enqueue(new TextEncoder().encode(chunk));
+          return;
+        }
+        controller.enqueue(Buffer.isBuffer(chunk) ? chunk : new Uint8Array(chunk));
+      });
+      stream.on("end", () => controller.close());
+      stream.on("error", (error: Error) => controller.error(error));
+    },
+    cancel() {
+      if ("destroy" in stream && typeof stream.destroy === "function") {
+        stream.destroy();
+      }
+    },
+  });
+
+const nodeWritableToWeb = (stream: NodeJS.WritableStream): WritableStream<Uint8Array> =>
+  new WritableStream<Uint8Array>({
+    write(chunk) {
+      return new Promise<void>((resolve, reject) => {
+        stream.write(chunk, (error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    },
+    close() {
+      return new Promise<void>((resolve, reject) => {
+        stream.once("error", (error: Error) => reject(error));
+        stream.end(() => resolve());
+      });
+    },
+    abort(reason) {
+      if ("destroy" in stream && typeof stream.destroy === "function") {
+        stream.destroy(reason instanceof Error ? reason : undefined);
+      }
+    },
+  });
 
 const writeToNodeStream = async (
   stream: NodeJS.WritableStream,

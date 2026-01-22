@@ -110,8 +110,8 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
     const cmd = this.sprite.spawn(command, args, providerOptions);
 
     cmd.on("exit", () => {
-      cmd.stdout.end();
-      cmd.stderr.end();
+      cmd.stdout.destroy();
+      cmd.stderr.destroy();
     });
 
     cmd.on("error", (error) => {
@@ -124,9 +124,9 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
     }
 
     return {
-      stdout: Readable.toWeb(cmd.stdout),
-      stderr: Readable.toWeb(cmd.stderr),
-      stdin: Writable.toWeb(cmd.stdin),
+      stdout: nodeReadableToWeb(cmd.stdout),
+      stderr: nodeReadableToWeb(cmd.stderr),
+      stdin: nodeWritableToWeb(cmd.stdin),
       exitCode: cmd.wait().then((code) => (Number.isFinite(code) ? code : null)),
     };
   }
@@ -140,3 +140,45 @@ const writeToNodeStream = async (stream: Writable, input: string | Uint8Array): 
     stream.end(buffer, resolve);
   });
 };
+
+const nodeReadableToWeb = (stream: Readable): ReadableStream<Uint8Array> =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      stream.on("data", (chunk) => {
+        if (typeof chunk === "string") {
+          controller.enqueue(new TextEncoder().encode(chunk));
+          return;
+        }
+        controller.enqueue(Buffer.isBuffer(chunk) ? chunk : new Uint8Array(chunk));
+      });
+      stream.on("end", () => controller.close());
+      stream.on("error", (error: Error) => controller.error(error));
+    },
+    cancel() {
+      stream.destroy();
+    },
+  });
+
+const nodeWritableToWeb = (stream: Writable): WritableStream<Uint8Array> =>
+  new WritableStream<Uint8Array>({
+    write(chunk) {
+      return new Promise<void>((resolve, reject) => {
+        stream.write(chunk, (error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    },
+    close() {
+      return new Promise<void>((resolve, reject) => {
+        stream.once("error", (error: Error) => reject(error));
+        stream.end(() => resolve());
+      });
+    },
+    abort(reason) {
+      stream.destroy(reason instanceof Error ? reason : undefined);
+    },
+  });

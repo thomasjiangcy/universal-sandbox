@@ -183,7 +183,7 @@ class ModalSandbox implements Sandbox<ModalSandboxClient, ModalExecOptions> {
     }
 
     const { mode: _mode, ...providerOptions } = options?.providerOptions ?? {};
-    const execOptions: SandboxExecParams & { mode?: "binary" } = {
+    const execOptions: SandboxExecParams & { mode: "binary" } = {
       ...providerOptions,
       mode: "binary",
       stdout: options?.providerOptions?.stdout ?? "pipe",
