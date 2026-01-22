@@ -2,6 +2,11 @@
   "name": "@usbx/e2b",
   "version": "0.1.0-alpha.0",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasjiangcy/universal-sandbox.git",
+    "directory": "packages/providers/e2b"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

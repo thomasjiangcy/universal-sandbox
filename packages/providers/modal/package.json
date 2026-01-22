@@ -2,6 +2,11 @@
   "name": "@usbx/modal",
   "version": "0.1.0-alpha.0",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasjiangcy/universal-sandbox.git",
+    "directory": "packages/providers/modal"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
