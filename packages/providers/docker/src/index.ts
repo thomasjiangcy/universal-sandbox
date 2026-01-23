@@ -1,14 +1,46 @@
 import Docker from "dockerode";
 import { PassThrough } from "node:stream";
+import { ServiceUrlError } from "@usbx/core";
 import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
   ExecStream,
+  GetServiceUrlOptions,
   Sandbox,
   SandboxId,
   SandboxProvider,
+  ServiceUrl,
 } from "@usbx/core";
+
+export type TunnelProviderKind = "cloudflared" | "tailscale" | "ngrok" | "custom";
+
+export type TunnelAuth =
+  | { mode: "none" }
+  | { mode: "header"; name: string }
+  | { mode: "query"; name: string };
+
+export type TunnelProviderConfig = {
+  kind: TunnelProviderKind;
+  command?: string;
+  args?: string[];
+  auth?: TunnelAuth;
+  baseUrl?: string;
+};
+
+export interface TunnelProvider {
+  createTunnel(options: {
+    targetHost: string;
+    targetPort: number;
+    visibility: "public" | "private";
+  }): Promise<{ url: string; headers?: Record<string, string> }>;
+  closeTunnel(): Promise<void>;
+}
+
+export type DockerServiceUrlOptions = {
+  exposure?: "tunnel" | "local-only";
+  tunnel?: TunnelProviderConfig;
+};
 
 export type DockerProviderOptions = {
   docker?: Docker;
@@ -18,7 +50,7 @@ export type DockerProviderOptions = {
   protocol?: "http" | "https";
   defaultImage?: string;
   defaultCommand?: string[];
-};
+} & DockerServiceUrlOptions;
 
 export type DockerExecOptions = {
   user?: string;
@@ -266,6 +298,13 @@ class DockerSandbox implements Sandbox<Docker.Container, DockerExecOptions> {
       stdin: nodeWritableToWeb(stream),
       exitCode,
     };
+  }
+
+  async getServiceUrl(options: GetServiceUrlOptions): Promise<ServiceUrl> {
+    throw new ServiceUrlError(
+      "unsupported",
+      `DockerProvider.getServiceUrl is currently unsupported (requested port ${options.port}).`,
+    );
   }
 }
 
