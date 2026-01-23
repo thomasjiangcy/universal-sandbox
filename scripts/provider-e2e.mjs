@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const KNOWN_PROVIDERS = ["docker", "e2b", "daytona", "modal", "sprites"];
+const KNOWN_PROVIDERS = ["local-docker", "e2b", "daytona", "modal", "sprites"];
 const REQUIRED_ENV_BY_PROVIDER = {
   sprites: ["SPRITES_TOKEN"],
 };

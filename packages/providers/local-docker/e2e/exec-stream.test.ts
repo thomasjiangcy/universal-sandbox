@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DockerProvider } from "../src/index.js";
+import { LocalDockerProvider } from "../src/index.js";
 
 const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<string> => {
   const reader = stream.getReader();
@@ -21,11 +21,11 @@ const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<strin
   return output;
 };
 
-describe("docker e2e execStream", () => {
+describe("local-docker e2e execStream", () => {
   it("streams a command", async () => {
     const name = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const image = process.env.DOCKER_IMAGE ?? "alpine";
-    const provider = new DockerProvider({ defaultImage: image });
+    const provider = new LocalDockerProvider({ defaultImage: image });
 
     const sandbox = await provider.create({ name });
     try {
