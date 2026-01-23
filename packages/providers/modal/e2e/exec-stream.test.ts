@@ -1,8 +1,40 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ModalClient } from "modal";
 
 import { ModalProvider } from "../src/index.js";
+
+const getModalClient = (): ModalClient => {
+  const tokenId = process.env.MODAL_TOKEN_ID;
+  const tokenSecret = process.env.MODAL_TOKEN_SECRET;
+  if (!tokenId || !tokenSecret) {
+    throw new Error("Modal credentials missing: set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET.");
+  }
+  return new ModalClient({ tokenId, tokenSecret });
+};
+
+type CleanupTask = () => Promise<void>;
+
+const createCleanup = () => {
+  let tasks: CleanupTask[] = [];
+
+  return {
+    add(task: CleanupTask) {
+      tasks.push(task);
+    },
+    async run() {
+      const current = tasks;
+      tasks = [];
+      for (const task of current) {
+        try {
+          await task();
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+    },
+  };
+};
 
 const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<string> => {
   const reader = stream.getReader();
@@ -24,8 +56,14 @@ const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<strin
 };
 
 describe("modal e2e execStream", () => {
+  const cleanup = createCleanup();
+
+  afterEach(async () => {
+    await cleanup.run();
+  });
+
   it("streams a command", async () => {
-    const client = new ModalClient();
+    const client = getModalClient();
     const app = await client.apps.fromName("usbx-e2e", { createIfMissing: true });
     const provider = new ModalProvider({
       app,
@@ -33,13 +71,7 @@ describe("modal e2e execStream", () => {
     });
 
     const sandbox = await provider.create();
-    try {
-      const result = await sandbox.execStream("echo", ["hello"]);
-      const stdout = await readStreamText(result.stdout);
-
-      await expect(result.exitCode).resolves.toBe(0);
-      expect(stdout).toContain("hello");
-    } finally {
+    const cleanupTask = async () => {
       await provider.delete(sandbox.id);
       try {
         const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
@@ -53,6 +85,16 @@ describe("modal e2e execStream", () => {
       } finally {
         client.close();
       }
+    };
+    cleanup.add(cleanupTask);
+    try {
+      const result = await sandbox.execStream("echo", ["hello"]);
+      const stdout = await readStreamText(result.stdout);
+
+      await expect(result.exitCode).resolves.toBe(0);
+      expect(stdout).toContain("hello");
+    } finally {
+      await cleanupTask();
     }
   }, 30000);
 });

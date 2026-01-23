@@ -1,12 +1,50 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ModalClient } from "modal";
 
 import { ModalProvider } from "../src/index.js";
 
+type CleanupTask = () => Promise<void>;
+
+const getModalClient = (): ModalClient => {
+  const tokenId = process.env.MODAL_TOKEN_ID;
+  const tokenSecret = process.env.MODAL_TOKEN_SECRET;
+  if (!tokenId || !tokenSecret) {
+    throw new Error("Modal credentials missing: set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET.");
+  }
+  return new ModalClient({ tokenId, tokenSecret });
+};
+
+const createCleanup = () => {
+  let tasks: CleanupTask[] = [];
+
+  return {
+    add(task: CleanupTask) {
+      tasks.push(task);
+    },
+    async run() {
+      const current = tasks;
+      tasks = [];
+      for (const task of current) {
+        try {
+          await task();
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+    },
+  };
+};
+
 describe("modal e2e exec", () => {
+  const cleanup = createCleanup();
+
+  afterEach(async () => {
+    await cleanup.run();
+  });
+
   it("creates a sandbox and runs a command", async () => {
-    const client = new ModalClient();
+    const client = getModalClient();
     const app = await client.apps.fromName("usbx-e2e", { createIfMissing: true });
     const provider = new ModalProvider({
       app,
@@ -14,10 +52,7 @@ describe("modal e2e exec", () => {
     });
 
     const sandbox = await provider.create();
-    try {
-      const result = await sandbox.exec("echo", ["hello"]);
-      expect(result.stdout).toContain("hello");
-    } finally {
+    const cleanupTask = async () => {
       await provider.delete(sandbox.id);
       try {
         const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
@@ -31,11 +66,18 @@ describe("modal e2e exec", () => {
       } finally {
         client.close();
       }
+    };
+    cleanup.add(cleanupTask);
+    try {
+      const result = await sandbox.exec("echo", ["hello"]);
+      expect(result.stdout).toContain("hello");
+    } finally {
+      await cleanupTask();
     }
   }, 30000);
 
   it("handles inherit stdout and stderr", async () => {
-    const client = new ModalClient();
+    const client = getModalClient();
     const app = await client.apps.fromName("usbx-e2e", { createIfMissing: true });
     const provider = new ModalProvider({
       app,
@@ -43,6 +85,22 @@ describe("modal e2e exec", () => {
     });
 
     const sandbox = await provider.create();
+    const cleanupTask = async () => {
+      await provider.delete(sandbox.id);
+      try {
+        const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
+        await client.cpClient.appStop({
+          appId: app.appId,
+          source: appStopSource,
+        });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`Modal app stop failed: ${message}`);
+      } finally {
+        client.close();
+      }
+    };
+    cleanup.add(cleanupTask);
     try {
       const result = await sandbox.exec("echo", ["hello"], {
         providerOptions: {
@@ -54,19 +112,7 @@ describe("modal e2e exec", () => {
       expect(result.stdout).toEqual(expect.any(String));
       expect(result.stderr).toEqual(expect.any(String));
     } finally {
-      await provider.delete(sandbox.id);
-      try {
-        const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
-        await client.cpClient.appStop({
-          appId: app.appId,
-          source: appStopSource,
-        });
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn(`Modal app stop failed: ${message}`);
-      } finally {
-        client.close();
-      }
+      await cleanupTask();
     }
   }, 30000);
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { DaytonaProvider } from "../src/index.js";
 
@@ -22,10 +22,25 @@ const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<strin
 };
 
 describe("daytona e2e execStream", () => {
-  it("streams a command", async () => {
-    const provider = new DaytonaProvider({ createParams: { language: "typescript" } });
+  const name = "usbx-daytona-stream";
+  const provider = new DaytonaProvider({ createParams: { language: "typescript" } });
 
-    const sandbox = await provider.create({ name: "usbx-daytona-stream" });
+  afterEach(async () => {
+    try {
+      await provider.delete(name);
+    } catch {
+      // Best-effort cleanup.
+    }
+  });
+
+  it("streams a command", async () => {
+    try {
+      await provider.delete(name);
+    } catch {
+      // Best-effort cleanup before create.
+    }
+
+    const sandbox = await provider.create({ name });
     try {
       const result = await sandbox.execStream("echo", ["hello"]);
       const stdout = await readStreamText(result.stdout);

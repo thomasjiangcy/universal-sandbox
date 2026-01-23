@@ -1,10 +1,42 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { ExecResult } from "@usbx/core";
 import { ServiceUrlError } from "@usbx/core";
 import { ModalClient } from "modal";
 
 import { ModalProvider } from "../src/index.js";
+
+const getModalClient = (): ModalClient => {
+  const tokenId = process.env.MODAL_TOKEN_ID;
+  const tokenSecret = process.env.MODAL_TOKEN_SECRET;
+  if (!tokenId || !tokenSecret) {
+    throw new Error("Modal credentials missing: set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET.");
+  }
+  return new ModalClient({ tokenId, tokenSecret });
+};
+
+type CleanupTask = () => Promise<void>;
+
+const createCleanup = () => {
+  let tasks: CleanupTask[] = [];
+
+  return {
+    add(task: CleanupTask) {
+      tasks.push(task);
+    },
+    async run() {
+      const current = tasks;
+      tasks = [];
+      for (const task of current) {
+        try {
+          await task();
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+    },
+  };
+};
 
 type SandboxWithExec = {
   exec: (command: string, args?: string[]) => Promise<ExecResult>;
@@ -36,7 +68,7 @@ const startHttpServer = async (sandbox: SandboxWithExec, port: number): Promise<
 };
 
 const createModalSandbox = async (options: ConstructorParameters<typeof ModalProvider>[0]) => {
-  const client = new ModalClient();
+  const client = getModalClient();
   const app = await client.apps.fromName("usbx-e2e", { createIfMissing: true });
   const provider = new ModalProvider({
     app,
@@ -70,10 +102,17 @@ const cleanupModalSandbox = async (resources: {
 };
 
 describe("modal e2e service URL", () => {
+  const cleanup = createCleanup();
+
+  afterEach(async () => {
+    await cleanup.run();
+  });
+
   it("returns a public service URL", async () => {
     const resources = await createModalSandbox({
       sandboxOptions: { encryptedPorts: [8080] },
     });
+    cleanup.add(() => cleanupModalSandbox(resources));
     try {
       await startHttpServer(resources.sandbox, 8080);
       const result = await resources.sandbox.getServiceUrl({ port: 8080, visibility: "public" });
@@ -88,6 +127,7 @@ describe("modal e2e service URL", () => {
 
   it("returns a private service URL", async () => {
     const resources = await createModalSandbox({});
+    cleanup.add(() => cleanupModalSandbox(resources));
     try {
       await startHttpServer(resources.sandbox, 8080);
       const result = await resources.sandbox.getServiceUrl({ port: 8080, visibility: "private" });
@@ -102,6 +142,7 @@ describe("modal e2e service URL", () => {
 
   it("returns a query-authenticated private service URL", async () => {
     const resources = await createModalSandbox({ authMode: "query" });
+    cleanup.add(() => cleanupModalSandbox(resources));
     try {
       await startHttpServer(resources.sandbox, 8080);
       const result = await resources.sandbox.getServiceUrl({ port: 8080, visibility: "private" });
@@ -117,6 +158,7 @@ describe("modal e2e service URL", () => {
 
   it("throws on port mismatch for private URLs", async () => {
     const resources = await createModalSandbox({});
+    cleanup.add(() => cleanupModalSandbox(resources));
     try {
       await expect(
         resources.sandbox.getServiceUrl({ port: 3000, visibility: "private" }),

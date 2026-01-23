@@ -1,8 +1,37 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { SpritesProvider } from "../src/index.js";
 
+type CleanupTask = () => Promise<void>;
+
+const createCleanup = () => {
+  let tasks: CleanupTask[] = [];
+
+  return {
+    add(task: CleanupTask) {
+      tasks.push(task);
+    },
+    async run() {
+      const current = tasks;
+      tasks = [];
+      for (const task of current) {
+        try {
+          await task();
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+    },
+  };
+};
+
 describe("sprites e2e service URL", () => {
+  const cleanup = createCleanup();
+
+  afterEach(async () => {
+    await cleanup.run();
+  });
+
   const startHttpServer = async (
     sandbox: { exec: (command: string, args?: string[]) => Promise<unknown> },
     port: number,
@@ -26,6 +55,7 @@ fi`,
     const port = 8000;
 
     const sandbox = await provider.create({ name });
+    cleanup.add(() => provider.delete(sandbox.id));
     try {
       await startHttpServer(sandbox, port);
       const result = await sandbox.getServiceUrl({ port, timeoutSeconds: 10 });
