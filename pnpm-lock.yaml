@@ -50,7 +50,7 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
-  packages/providers/docker:
+  packages/providers/local-docker:
     dependencies:
       '@usbx/core':
         specifier: workspace:*

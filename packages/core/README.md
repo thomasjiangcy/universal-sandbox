@@ -24,4 +24,4 @@ const result = await sbx.exec("echo", ["hello"]);
 
 ### Notes
 
-- `getServiceUrl` is currently unsupported for the Docker and Sprites providers.
+- `getServiceUrl` is currently unsupported for the Sprites provider.

@@ -1,4 +1,4 @@
-# @usbx/docker
+# @usbx/local-docker
 
 ## 0.1.0-alpha.3
 
