@@ -1,5 +1,13 @@
 # @usbx/sprites
 
+## 0.1.0-alpha.3
+
+### Patch Changes
+
+- cbd4229: Add unified service URL support across core types and providers, with provider-specific behavior and e2e coverage.
+- Updated dependencies [cbd4229]
+  - @usbx/core@0.1.0-alpha.3
+
 ## 0.1.0-alpha.2
 
 ### Minor Changes
