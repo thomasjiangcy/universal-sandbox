@@ -25,7 +25,7 @@
     "format": "oxfmt --write src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run src",
-    "test:e2e": "vitest run e2e"
+    "test:e2e": "vitest run e2e --passWithNoTests"
   },
   "dependencies": {
     "@usbx/core": "workspace:*"
