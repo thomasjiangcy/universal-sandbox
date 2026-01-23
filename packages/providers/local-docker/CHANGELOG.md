@@ -1,5 +1,11 @@
 # @usbx/local-docker
 
+## 0.1.0-alpha.4
+
+### Patch Changes
+
+- 7e1ecd1: Rename the Docker provider to `@usbx/local-docker` and clarify it as a local-only provider with local service URLs.
+
 ## 0.1.0-alpha.3
 
 ### Patch Changes
