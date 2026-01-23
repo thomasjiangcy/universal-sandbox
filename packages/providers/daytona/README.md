@@ -28,6 +28,7 @@ const result = await sbx.exec("echo", ["hello"]);
 
 - Exec stdin is not supported in the unified API yet.
 - `executeCommand` does not return stderr, so `stderr` is always empty.
+- `getTcpProxy` starts a lightweight WebSocket-to-TCP proxy inside the sandbox (Node.js required) and returns a Sprites-style tunnel URL.
 
 ### Links
 

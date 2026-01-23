@@ -27,6 +27,7 @@ const result = await sbx.exec("echo", ["hello"]);
 - Docker exec stdin is not supported in the unified API yet.
 - `getServiceUrl` is supported for ports published at container creation time.
 - Public service URLs are not supported; Docker is intended for local development.
+- `getTcpProxy` starts a lightweight WebSocket-to-TCP proxy inside the container (Node.js required) and returns a local Sprites-style tunnel URL.
 
 ### Links
 
