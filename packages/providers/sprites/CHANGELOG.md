@@ -1,5 +1,11 @@
 # @usbx/sprites
 
+## 0.1.0-alpha.4
+
+### Minor Changes
+
+- ac28a51: Add a best-effort Sprites `getServiceUrl` that derives the URL from sprite metadata and checks whether the port is listening.
+
 ## 0.1.0-alpha.3
 
 ### Patch Changes
