@@ -20,6 +20,7 @@
     "modal-provider-alpha",
     "provider-delete-api",
     "service-url-support",
-    "sprites-output-alpha"
+    "sprites-output-alpha",
+    "sprites-service-url"
   ]
 }
