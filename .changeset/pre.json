@@ -17,6 +17,7 @@
     "initial-alpha-core-docker-testing",
     "modal-provider-alpha",
     "provider-delete-api",
+    "service-url-support",
     "sprites-output-alpha"
   ]
 }
