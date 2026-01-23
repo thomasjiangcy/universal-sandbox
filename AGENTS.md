@@ -26,7 +26,7 @@
 ## Package-specific scripts
 
 - Use `pnpm -F <package> <script>` for per-package tasks.
-- Package names: `@usbx/core`, `@usbx/docker`, `@usbx/sprites`, `@usbx/testing`.
+- Package names: `@usbx/core`, `@usbx/local-docker`, `@usbx/sprites`, `@usbx/testing`.
 
 ## TypeScript guidelines
 
