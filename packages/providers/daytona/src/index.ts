@@ -5,15 +5,22 @@ import type {
   DaytonaConfig,
   Sandbox as DaytonaSandboxClient,
 } from "@daytonaio/sdk";
+import { ServiceUrlError } from "@usbx/core";
 import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
   ExecStream,
+  GetServiceUrlOptions,
   Sandbox,
   SandboxId,
   SandboxProvider,
+  ServiceUrl,
 } from "@usbx/core";
+
+export type DaytonaServiceUrlOptions = {
+  preferSignedUrl?: boolean;
+};
 
 export type DaytonaProviderOptions = {
   client?: Daytona;
@@ -23,7 +30,7 @@ export type DaytonaProviderOptions = {
     timeout?: number;
     onSnapshotCreateLogs?: (chunk: string) => void;
   };
-};
+} & DaytonaServiceUrlOptions;
 
 type DaytonaExecOptions = never;
 
@@ -108,6 +115,7 @@ export class DaytonaProvider implements SandboxProvider<
   private client: Daytona;
   private createParams?: CreateSandboxFromImageParams | CreateSandboxFromSnapshotParams;
   private createOptions?: DaytonaProviderOptions["createOptions"];
+  private preferSignedUrl: boolean;
 
   native: Daytona;
 
@@ -120,6 +128,7 @@ export class DaytonaProvider implements SandboxProvider<
     if (options.createOptions !== undefined) {
       this.createOptions = options.createOptions;
     }
+    this.preferSignedUrl = options.preferSignedUrl ?? false;
   }
 
   async create(
@@ -135,12 +144,12 @@ export class DaytonaProvider implements SandboxProvider<
     }
 
     const sandbox = await this.client.create(createParams, this.createOptions);
-    return new DaytonaSandbox(sandbox);
+    return new DaytonaSandbox(sandbox, this.preferSignedUrl);
   }
 
   async get(idOrName: string): Promise<Sandbox<DaytonaSandboxClient, DaytonaExecOptions>> {
     const sandbox = await this.client.get(idOrName);
-    return new DaytonaSandbox(sandbox);
+    return new DaytonaSandbox(sandbox, this.preferSignedUrl);
   }
 
   async delete(idOrName: string): Promise<void> {
@@ -155,11 +164,14 @@ class DaytonaSandbox implements Sandbox<DaytonaSandboxClient, DaytonaExecOptions
   native: DaytonaSandboxClient;
 
   private sandbox: DaytonaSandboxClient;
+  private preferSignedUrl: boolean;
+  private serviceUrlCache = new Map<number, ServiceUrl>();
 
-  constructor(sandbox: DaytonaSandboxClient) {
+  constructor(sandbox: DaytonaSandboxClient, preferSignedUrl: boolean) {
     this.id = sandbox.id;
     this.name = sandbox.name;
     this.sandbox = sandbox;
+    this.preferSignedUrl = preferSignedUrl;
     this.native = sandbox;
   }
 
@@ -248,5 +260,51 @@ class DaytonaSandbox implements Sandbox<DaytonaSandboxClient, DaytonaExecOptions
       stderr: stderrStream.readable,
       exitCode,
     };
+  }
+
+  async getServiceUrl(options: GetServiceUrlOptions): Promise<ServiceUrl> {
+    const resolvedVisibility = options.visibility ?? (this.sandbox.public ? "public" : "private");
+    const cached = this.serviceUrlCache.get(options.port);
+    if (cached && cached.visibility === resolvedVisibility) {
+      return cached;
+    }
+
+    if (resolvedVisibility === "private" && this.sandbox.public) {
+      throw new ServiceUrlError(
+        "visibility_mismatch",
+        'Requested "private" URL, but the sandbox is public. Create a private sandbox or use a signed preview URL if supported.',
+      );
+    }
+    if (resolvedVisibility === "public" && !this.sandbox.public) {
+      throw new ServiceUrlError(
+        "visibility_mismatch",
+        'Requested "public" URL, but the sandbox is private. Create a public sandbox or request a private URL.',
+      );
+    }
+
+    const previewInfo = await this.sandbox.getPreviewLink(options.port);
+    let result: ServiceUrl;
+
+    if (resolvedVisibility === "public") {
+      result = {
+        url: previewInfo.url,
+        visibility: "public",
+      };
+    } else if (this.preferSignedUrl) {
+      const signedPreview = await this.sandbox.getSignedPreviewUrl(options.port);
+      result = {
+        url: signedPreview.url,
+        visibility: "private",
+      };
+    } else {
+      result = {
+        url: previewInfo.url,
+        headers: { "x-daytona-preview-token": previewInfo.token },
+        visibility: "private",
+      };
+    }
+
+    this.serviceUrlCache.set(options.port, result);
+    return result;
   }
 }
