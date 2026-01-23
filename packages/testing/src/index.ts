@@ -1,4 +1,11 @@
-import type { ExecResult, ExecStream, Sandbox, SandboxProvider } from "@usbx/core";
+import type {
+  ExecResult,
+  ExecStream,
+  GetServiceUrlOptions,
+  Sandbox,
+  SandboxProvider,
+  ServiceUrl,
+} from "@usbx/core";
 
 export type LocalProviderOptions = {
   defaultName?: string;
@@ -38,6 +45,14 @@ export class LocalSandbox implements Sandbox<undefined, undefined> {
       stdout: streamFromText("hello\n"),
       stderr: streamFromText(""),
       exitCode: Promise.resolve(0),
+    };
+  }
+
+  async getServiceUrl(options: GetServiceUrlOptions): Promise<ServiceUrl> {
+    const visibility = options.visibility ?? "private";
+    return {
+      url: `http://127.0.0.1:${options.port}`,
+      visibility,
     };
   }
 }

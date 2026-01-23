@@ -1,20 +1,27 @@
 import { Sandbox as E2BSandboxClient } from "e2b";
 import type { CommandStartOpts, SandboxConnectOpts, SandboxOpts } from "e2b";
+import { ServiceUrlError } from "@usbx/core";
 import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
   ExecStream,
+  GetServiceUrlOptions,
   Sandbox,
   SandboxId,
   SandboxProvider,
+  ServiceUrl,
 } from "@usbx/core";
+
+export type E2BServiceUrlOptions = {
+  allowPublicTraffic?: boolean;
+};
 
 export type E2BProviderOptions = {
   template?: string;
   createOptions?: SandboxOpts;
   connectOptions?: SandboxConnectOpts;
-};
+} & E2BServiceUrlOptions;
 
 export type E2BExecOptions = Omit<
   CommandStartOpts,
@@ -84,6 +91,7 @@ export class E2BProvider implements SandboxProvider<
   private template?: string;
   private createOptions?: SandboxOpts;
   private connectOptions?: SandboxConnectOpts;
+  private allowPublicTraffic?: boolean;
 
   native: typeof E2BSandboxClient;
 
@@ -97,11 +105,20 @@ export class E2BProvider implements SandboxProvider<
     if (options.connectOptions !== undefined) {
       this.connectOptions = options.connectOptions;
     }
+    if (options.allowPublicTraffic !== undefined) {
+      this.allowPublicTraffic = options.allowPublicTraffic;
+    }
     this.native = E2BSandboxClient;
   }
 
   async create(options?: CreateOptions): Promise<Sandbox<E2BSandboxClient, E2BExecOptions>> {
     let createOptions = this.createOptions ? { ...this.createOptions } : undefined;
+    if (this.allowPublicTraffic !== undefined) {
+      const network = createOptions?.network
+        ? { ...createOptions.network, allowPublicTraffic: this.allowPublicTraffic }
+        : { allowPublicTraffic: this.allowPublicTraffic };
+      createOptions = createOptions ? { ...createOptions, network } : { network };
+    }
     if (options?.name) {
       const metadata = createOptions?.metadata
         ? { ...createOptions.metadata, name: options.name }
@@ -121,7 +138,7 @@ export class E2BProvider implements SandboxProvider<
       sandbox = await E2BSandboxClient.create();
     }
 
-    return new E2BSandbox(sandbox, options?.name);
+    return new E2BSandbox(sandbox, options?.name, this.allowPublicTraffic);
   }
 
   async get(idOrName: string): Promise<Sandbox<E2BSandboxClient, E2BExecOptions>> {
@@ -141,13 +158,18 @@ class E2BSandbox implements Sandbox<E2BSandboxClient, E2BExecOptions> {
   native: E2BSandboxClient;
 
   private sandbox: E2BSandboxClient;
+  private allowPublicTraffic?: boolean;
+  private serviceUrlCache = new Map<number, ServiceUrl>();
 
-  constructor(sandbox: E2BSandboxClient, name?: string) {
+  constructor(sandbox: E2BSandboxClient, name?: string, allowPublicTraffic?: boolean) {
     this.id = sandbox.sandboxId;
     if (name) {
       this.name = name;
     }
     this.sandbox = sandbox;
+    if (allowPublicTraffic !== undefined) {
+      this.allowPublicTraffic = allowPublicTraffic;
+    }
     this.native = sandbox;
   }
 
@@ -245,5 +267,75 @@ class E2BSandbox implements Sandbox<E2BSandboxClient, E2BExecOptions> {
       stderr: stderrStream.readable,
       exitCode: resultPromise.then((result) => result.exitCode ?? null),
     };
+  }
+
+  async getServiceUrl(options: GetServiceUrlOptions): Promise<ServiceUrl> {
+    const token = this.sandbox.trafficAccessToken;
+    const resolvedVisibility =
+      options.visibility ??
+      (this.allowPublicTraffic === false
+        ? "private"
+        : this.allowPublicTraffic === true
+          ? "public"
+          : token
+            ? "private"
+            : "public");
+    const cached = this.serviceUrlCache.get(options.port);
+    if (cached && cached.visibility === resolvedVisibility) {
+      return cached;
+    }
+
+    if (this.allowPublicTraffic === undefined && options.visibility !== undefined) {
+      if (options.visibility === "public" && token) {
+        throw new ServiceUrlError(
+          "visibility_mismatch",
+          'Requested "public" URL, but the sandbox requires private access (traffic access token is present). Recreate the sandbox with allowPublicTraffic=true or request a private URL.',
+        );
+      }
+      if (options.visibility === "private" && !token) {
+        throw new ServiceUrlError(
+          "visibility_mismatch",
+          'Requested "private" URL, but the sandbox is configured for public traffic (no access token). Recreate the sandbox with allowPublicTraffic=false or request a public URL.',
+        );
+      }
+    }
+
+    if (this.allowPublicTraffic === false && resolvedVisibility === "public") {
+      throw new ServiceUrlError(
+        "visibility_mismatch",
+        'Requested "public" URL, but the sandbox was created with allowPublicTraffic=false. Create a new sandbox with allowPublicTraffic=true to enable public URLs.',
+      );
+    }
+    if (this.allowPublicTraffic === true && resolvedVisibility === "private") {
+      throw new ServiceUrlError(
+        "visibility_mismatch",
+        'Requested "private" URL, but the sandbox was created with allowPublicTraffic=true. Create a new sandbox with allowPublicTraffic=false to require private access.',
+      );
+    }
+
+    const url = `https://${this.sandbox.getHost(options.port)}`;
+    let result: ServiceUrl;
+
+    if (resolvedVisibility === "private") {
+      if (!token) {
+        throw new ServiceUrlError(
+          "service_not_ready",
+          "Sandbox traffic access token is not available yet.",
+        );
+      }
+      result = {
+        url,
+        headers: { "e2b-traffic-access-token": token },
+        visibility: "private",
+      };
+    } else {
+      result = {
+        url,
+        visibility: "public",
+      };
+    }
+
+    this.serviceUrlCache.set(options.port, result);
+    return result;
   }
 }

@@ -25,6 +25,7 @@ const result = await sbx.exec("echo", ["hello"]);
 ### Notes
 
 - Docker exec stdin is not supported in the unified API yet.
+- `getServiceUrl` is currently unsupported for the Docker provider.
 
 ### Links
 

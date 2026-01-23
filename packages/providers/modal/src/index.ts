@@ -1,15 +1,23 @@
 import { App, Sandbox as ModalSandboxClient } from "modal";
 import type { Image, SandboxCreateParams, SandboxExecParams, Secret } from "modal";
+import { ServiceUrlError } from "@usbx/core";
 import type {
   CreateOptions,
   ExecOptions as UniversalExecOptions,
   ExecResult,
   ExecStream,
+  GetServiceUrlOptions,
   Sandbox,
   SandboxId,
   SandboxProvider,
+  ServiceUrl,
+  ServiceUrlVisibility,
 } from "@usbx/core";
 import { readTextOrEmpty } from "./internal.js";
+
+export type ModalServiceUrlOptions = {
+  authMode?: "header" | "query";
+};
 
 export type ModalProviderOptions = {
   app?: App;
@@ -22,7 +30,7 @@ export type ModalProviderOptions = {
   imageRef?: string;
   imageRegistrySecret?: Secret;
   sandboxOptions?: SandboxCreateParams;
-};
+} & ModalServiceUrlOptions;
 
 export type ModalExecOptions = SandboxExecParams;
 
@@ -38,6 +46,7 @@ export class ModalProvider implements SandboxProvider<
   private imageRef?: string;
   private imageRegistrySecret?: Secret;
   private sandboxOptions?: SandboxCreateParams;
+  private authMode: ModalServiceUrlOptions["authMode"];
 
   native?: App;
 
@@ -64,18 +73,19 @@ export class ModalProvider implements SandboxProvider<
     if (options.sandboxOptions !== undefined) {
       this.sandboxOptions = options.sandboxOptions;
     }
+    this.authMode = options.authMode ?? "header";
   }
 
   async create(options?: CreateOptions): Promise<Sandbox<ModalSandboxClient, ModalExecOptions>> {
     const app = await this.resolveApp();
     const image = await this.resolveImage(app);
     const sandbox = await app.createSandbox(image, this.sandboxOptions);
-    return new ModalSandbox(sandbox, options?.name);
+    return new ModalSandbox(sandbox, options?.name, this.authMode);
   }
 
   async get(idOrName: string): Promise<Sandbox<ModalSandboxClient, ModalExecOptions>> {
     const sandbox = await ModalSandboxClient.fromId(idOrName);
-    return new ModalSandbox(sandbox);
+    return new ModalSandbox(sandbox, undefined, this.authMode);
   }
 
   async delete(idOrName: string): Promise<void> {
@@ -120,13 +130,20 @@ class ModalSandbox implements Sandbox<ModalSandboxClient, ModalExecOptions> {
   native: ModalSandboxClient;
 
   private sandbox: ModalSandboxClient;
+  private authMode: ModalServiceUrlOptions["authMode"];
+  private serviceUrlCache = new Map<number, ServiceUrl>();
 
-  constructor(sandbox: ModalSandboxClient, name?: string) {
+  constructor(
+    sandbox: ModalSandboxClient,
+    name: string | undefined,
+    authMode: ModalServiceUrlOptions["authMode"],
+  ) {
     this.id = sandbox.sandboxId;
     if (name) {
       this.name = name;
     }
     this.sandbox = sandbox;
+    this.authMode = authMode;
     this.native = sandbox;
   }
 
@@ -210,6 +227,60 @@ class ModalSandbox implements Sandbox<ModalSandboxClient, ModalExecOptions> {
       exitCode: process.wait(),
     };
   }
+
+  async getServiceUrl(options: GetServiceUrlOptions): Promise<ServiceUrl> {
+    const resolvedVisibility: ServiceUrlVisibility = options.visibility ?? "public";
+    const cached = this.serviceUrlCache.get(options.port);
+    if (cached && cached.visibility === resolvedVisibility) {
+      return cached;
+    }
+
+    if (resolvedVisibility === "public") {
+      const timeoutMs = options.timeoutSeconds ? options.timeoutSeconds * 1000 : undefined;
+      const tunnels = timeoutMs
+        ? await this.sandbox.tunnels(timeoutMs)
+        : await this.sandbox.tunnels();
+      const tunnel = tunnels[options.port];
+      if (!tunnel) {
+        throw new ServiceUrlError(
+          "tunnel_unavailable",
+          "Public URLs require forwarded ports. Create the sandbox with forwarded ports enabled to access public URLs.",
+        );
+      }
+
+      const result: ServiceUrl = {
+        url: tunnel.url,
+        visibility: "public",
+      };
+      this.serviceUrlCache.set(options.port, result);
+      return result;
+    }
+
+    if (options.port !== 8080) {
+      throw new ServiceUrlError(
+        "port_unavailable",
+        "Private URLs use Modal connect tokens, which only support port 8080. Start your HTTP server on port 8080 or request a public URL.",
+      );
+    }
+
+    const tokenInfo = await this.sandbox.createConnectToken();
+    let url = tokenInfo.url;
+    let headers: Record<string, string> | undefined;
+
+    if (this.authMode === "query") {
+      url = appendQueryToken(url, "_modal_connect_token", tokenInfo.token);
+      headers = undefined;
+    } else {
+      headers = { Authorization: `Bearer ${tokenInfo.token}` };
+    }
+
+    const result: ServiceUrl = headers
+      ? { url, headers, visibility: "private" }
+      : { url, visibility: "private" };
+
+    this.serviceUrlCache.set(options.port, result);
+    return result;
+  }
 }
 
 const writeToWebStream = async (
@@ -221,4 +292,10 @@ const writeToWebStream = async (
   await writer.write(bytes);
   await writer.close();
   writer.releaseLock();
+};
+
+const appendQueryToken = (url: string, key: string, value: string): string => {
+  const parsed = new URL(url);
+  parsed.searchParams.set(key, value);
+  return parsed.toString();
 };

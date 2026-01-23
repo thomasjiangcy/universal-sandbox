@@ -4,14 +4,17 @@ import type {
   ExecOptions as SpritesExecOptions,
   ExecResult as SpritesExecResult,
 } from "@fly/sprites";
+import { ServiceUrlError } from "@usbx/core";
 import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
   ExecStream,
+  GetServiceUrlOptions,
   Sandbox,
   SandboxId,
   SandboxProvider,
+  ServiceUrl,
 } from "@usbx/core";
 import { normalizeExitCode, normalizeOutput } from "./internal.js";
 
@@ -129,6 +132,13 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
       stdin: nodeWritableToWeb(cmd.stdin),
       exitCode: cmd.wait().then((code) => (Number.isFinite(code) ? code : null)),
     };
+  }
+
+  async getServiceUrl(options: GetServiceUrlOptions): Promise<ServiceUrl> {
+    throw new ServiceUrlError(
+      "unsupported",
+      `SpritesProvider.getServiceUrl is currently unsupported (requested port ${options.port}).`,
+    );
   }
 }
 
