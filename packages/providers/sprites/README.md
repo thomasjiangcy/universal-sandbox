@@ -25,6 +25,7 @@ const result = await sbx.exec("echo", ["hello"]);
 ### Notes
 
 - Sprites exec stdin is not supported in the unified API yet. Use `sandbox.native` for streaming.
+- `getServiceUrl` is currently unsupported for the Sprites provider.
 
 ### Links
 
