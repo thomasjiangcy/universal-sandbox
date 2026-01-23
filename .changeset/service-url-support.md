@@ -3,7 +3,7 @@
 "@usbx/daytona": patch
 "@usbx/e2b": patch
 "@usbx/modal": patch
-"@usbx/docker": patch
+"@usbx/local-docker": patch
 "@usbx/sprites": patch
 "@usbx/testing": patch
 ---

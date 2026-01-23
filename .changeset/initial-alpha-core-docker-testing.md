@@ -1,6 +1,6 @@
 ---
 "@usbx/core": minor
-"@usbx/docker": minor
+"@usbx/local-docker": minor
 "@usbx/testing": minor
 ---
 

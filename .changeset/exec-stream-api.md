@@ -1,7 +1,7 @@
 ---
 "@usbx/core": minor
 "@usbx/daytona": minor
-"@usbx/docker": minor
+"@usbx/local-docker": minor
 "@usbx/e2b": minor
 "@usbx/modal": minor
 "@usbx/sprites": minor
