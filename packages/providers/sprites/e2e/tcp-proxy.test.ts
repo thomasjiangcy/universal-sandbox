@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import WebSocket from "ws";
 
 import { SpritesProvider } from "../src/index.js";
 
@@ -19,17 +20,14 @@ type WebSocketLike = {
   close: () => void;
 };
 
-type WebSocketConstructor = new (
-  url: string,
-  protocols?: string | string[],
-  options?: { headers?: Record<string, string> },
-) => WebSocketLike;
+type WebSocketConstructor = typeof WebSocket;
 
 type SandboxWithExec = {
   exec: (command: string, args?: string[]) => Promise<unknown>;
   getTcpProxy: (options: { port: number; visibility?: "public" | "private" }) => Promise<{
     url: string;
     headers?: Record<string, string>;
+    protocol?: "sprites-tcp-proxy-v1";
   }>;
 };
 
@@ -54,13 +52,7 @@ const createCleanup = () => {
   };
 };
 
-const getWebSocketConstructor = (): WebSocketConstructor => {
-  const ws = (globalThis as unknown as { WebSocket?: WebSocketConstructor }).WebSocket;
-  if (!ws) {
-    throw new Error("WebSocket is not available in this runtime.");
-  }
-  return ws;
-};
+const getWebSocketConstructor = (): WebSocketConstructor => WebSocket;
 
 const waitForMessage = (ws: WebSocketLike): Promise<WebSocketMessageEvent> =>
   new Promise((resolve, reject) => {
@@ -100,15 +92,15 @@ const toBytes = (data: unknown): Uint8Array | null => {
 };
 
 const connectAndEcho = async (
-  proxy: { url: string; headers?: Record<string, string> },
+  proxy: { url: string; headers?: Record<string, string>; protocol?: "sprites-tcp-proxy-v1" },
   port: number,
   message: string,
 ): Promise<string> => {
   const WebSocketCtor = getWebSocketConstructor();
   const options = proxy.headers ? { headers: proxy.headers } : undefined;
   const ws = options
-    ? new WebSocketCtor(proxy.url, undefined, options)
-    : new WebSocketCtor(proxy.url);
+    ? new WebSocketCtor(proxy.url, proxy.protocol, options)
+    : new WebSocketCtor(proxy.url, proxy.protocol);
   ws.binaryType = "arraybuffer";
 
   await waitForOpen(ws);
@@ -221,6 +213,8 @@ describe("sprites e2e tcp proxy", () => {
   });
 
   it("tunnels TCP traffic over the proxy", async () => {
+    // Proxy docs: https://sprites.dev/api/sprites/proxy
+    // Note: Sprites TCP proxy can be flaky; handshake may close before open.
     const name = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const token = process.env.SPRITES_TOKEN;
     if (!token) {

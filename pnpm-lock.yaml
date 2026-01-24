@@ -50,6 +50,15 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
+  packages/providers/e2b:
+    dependencies:
+      '@usbx/core':
+        specifier: workspace:*
+        version: link:../../core
+      e2b:
+        specifier: ^2.10.3
+        version: 2.10.3
+
   packages/providers/local-docker:
     dependencies:
       '@usbx/core':
@@ -62,15 +71,6 @@ importers:
       '@types/dockerode':
         specifier: ^4.0.1
         version: 4.0.1
-
-  packages/providers/e2b:
-    dependencies:
-      '@usbx/core':
-        specifier: workspace:*
-        version: link:../../core
-      e2b:
-        specifier: ^2.10.3
-        version: 2.10.3
 
   packages/providers/modal:
     dependencies:
@@ -89,6 +89,10 @@ importers:
       '@usbx/core':
         specifier: workspace:*
         version: link:../../core
+    devDependencies:
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
 
   packages/testing:
     dependencies:
