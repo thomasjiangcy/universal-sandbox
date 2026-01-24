@@ -2,10 +2,13 @@ import type {
   ExecResult,
   ExecStream,
   GetServiceUrlOptions,
+  GetTcpProxyOptions,
   Sandbox,
   SandboxProvider,
   ServiceUrl,
+  TcpProxyInfo,
 } from "@usbx/core";
+import { TcpProxyError } from "@usbx/core";
 
 export type LocalProviderOptions = {
   defaultName?: string;
@@ -54,6 +57,10 @@ export class LocalSandbox implements Sandbox<undefined, undefined> {
       url: `http://127.0.0.1:${options.port}`,
       visibility,
     };
+  }
+
+  async getTcpProxy(_options: GetTcpProxyOptions): Promise<TcpProxyInfo> {
+    throw new TcpProxyError("unsupported", "LocalProvider does not support TCP proxies.");
   }
 }
 

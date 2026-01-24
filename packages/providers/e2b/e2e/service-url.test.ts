@@ -1,9 +1,32 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { ExecResult } from "@usbx/core";
 import { ServiceUrlError } from "@usbx/core";
 
 import { E2BProvider } from "../src/index.js";
+
+type CleanupTask = () => Promise<void>;
+
+const createCleanup = () => {
+  let tasks: CleanupTask[] = [];
+
+  return {
+    add(task: CleanupTask) {
+      tasks.push(task);
+    },
+    async run() {
+      const current = tasks;
+      tasks = [];
+      for (const task of current) {
+        try {
+          await task();
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+    },
+  };
+};
 
 const waitForHttpOk = async (
   url: string,
@@ -35,11 +58,18 @@ const startHttpServer = async (sandbox: SandboxWithExec, port: number): Promise<
 };
 
 describe("e2b e2e service URL", () => {
+  const cleanup = createCleanup();
+
+  afterEach(async () => {
+    await cleanup.run();
+  });
+
   it("returns a public service URL", async () => {
     const provider = new E2BProvider({ allowPublicTraffic: true });
     const port = 8000;
 
     const sandbox = await provider.create();
+    cleanup.add(() => provider.delete(sandbox.id));
     try {
       await startHttpServer(sandbox, port);
       const result = await sandbox.getServiceUrl({ port, visibility: "public" });
@@ -57,6 +87,7 @@ describe("e2b e2e service URL", () => {
     const port = 8001;
 
     const sandbox = await provider.create();
+    cleanup.add(() => provider.delete(sandbox.id));
     try {
       await startHttpServer(sandbox, port);
       const result = await sandbox.getServiceUrl({ port, visibility: "private" });
@@ -75,6 +106,7 @@ describe("e2b e2e service URL", () => {
     const port = 8004;
 
     const sandbox = await creator.create();
+    cleanup.add(() => creator.delete(sandbox.id));
     try {
       await startHttpServer(sandbox, port);
       const connected = await connector.get(sandbox.id);
@@ -93,6 +125,7 @@ describe("e2b e2e service URL", () => {
     const port = 8002;
 
     const sandbox = await provider.create();
+    cleanup.add(() => provider.delete(sandbox.id));
     try {
       await startHttpServer(sandbox, port);
       await expect(sandbox.getServiceUrl({ port, visibility: "public" })).rejects.toBeInstanceOf(
@@ -112,6 +145,7 @@ describe("e2b e2e service URL", () => {
     const port = 8003;
 
     const sandbox = await creator.create();
+    cleanup.add(() => creator.delete(sandbox.id));
     try {
       const connected = await connector.get(sandbox.id);
       const promise = connected.getServiceUrl({ port, visibility: "private" });

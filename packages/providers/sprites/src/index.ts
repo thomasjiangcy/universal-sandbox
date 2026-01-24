@@ -4,17 +4,19 @@ import type {
   ExecOptions as SpritesExecOptions,
   ExecResult as SpritesExecResult,
 } from "@fly/sprites";
-import { ServiceUrlError } from "@usbx/core";
+import { ServiceUrlError, TcpProxyError } from "@usbx/core";
 import type {
   CreateOptions,
   ExecOptions,
   ExecResult,
   ExecStream,
   GetServiceUrlOptions,
+  GetTcpProxyOptions,
   Sandbox,
   SandboxId,
   SandboxProvider,
   ServiceUrl,
+  TcpProxyInfo,
 } from "@usbx/core";
 import { normalizeExitCode, normalizeOutput } from "./internal.js";
 
@@ -29,6 +31,7 @@ export class SpritesProvider implements SandboxProvider<
   SpritesExecOptions
 > {
   private client: SpritesClient;
+  private token: string | undefined;
 
   native: SpritesClient;
 
@@ -43,6 +46,7 @@ export class SpritesProvider implements SandboxProvider<
       throw new Error("SpritesProvider requires a token or a client.");
     }
 
+    this.token = options.token;
     this.client = new SpritesClient(options.token);
     this.native = this.client;
   }
@@ -62,7 +66,7 @@ export class SpritesProvider implements SandboxProvider<
     idOrName: string,
   ): Promise<Sandbox<ReturnType<SpritesClient["sprite"]>, SpritesExecOptions>> {
     const sprite = this.client.sprite(idOrName);
-    return new SpritesSandbox(idOrName, sprite, this.client);
+    return new SpritesSandbox(idOrName, sprite, this.client, this.token);
   }
 
   async delete(idOrName: string): Promise<void> {
@@ -77,16 +81,19 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
 
   private sprite: ReturnType<SpritesClient["sprite"]>;
   private client: SpritesClient;
+  private token: string | undefined;
 
   constructor(
     idOrName: string,
     sprite: ReturnType<SpritesClient["sprite"]>,
     client: SpritesClient,
+    token?: string,
   ) {
     this.id = idOrName;
     this.name = idOrName;
     this.sprite = sprite;
     this.client = client;
+    this.token = token;
     this.native = sprite;
   }
 
@@ -161,6 +168,29 @@ class SpritesSandbox implements Sandbox<ReturnType<SpritesClient["sprite"]>, Spr
       visibility: resolvedVisibility,
     };
     return result;
+  }
+
+  async getTcpProxy(options: GetTcpProxyOptions): Promise<TcpProxyInfo> {
+    if (options.visibility === "public") {
+      throw new TcpProxyError(
+        "visibility_mismatch",
+        'Requested "public" TCP proxy, but Sprites proxy requires authentication.',
+      );
+    }
+
+    const idOrName = this.name ?? this.id;
+    const url = `wss://api.sprites.dev/v1/sprites/${idOrName}/proxy`;
+
+    return {
+      url,
+      ...(this.token ? { headers: { Authorization: `Bearer ${this.token}` } } : {}),
+      visibility: "private",
+      protocol: "sprites-tcp-proxy-v1",
+      init: {
+        hostDefault: "localhost",
+        requiresHost: false,
+      },
+    };
   }
 }
 
