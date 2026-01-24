@@ -1,5 +1,16 @@
 # @usbx/local-docker
 
+## 0.1.0-alpha.5
+
+### Minor Changes
+
+- 76bacac: Add TCP proxy support to the core API and providers, plus e2e coverage.
+
+### Patch Changes
+
+- Updated dependencies [76bacac]
+  - @usbx/core@0.1.0-alpha.4
+
 ## 0.1.0-alpha.4
 
 ### Patch Changes
