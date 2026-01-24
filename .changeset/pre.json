@@ -21,6 +21,7 @@
     "provider-delete-api",
     "service-url-support",
     "sprites-output-alpha",
-    "sprites-service-url"
+    "sprites-service-url",
+    "tcp-proxy-support"
   ]
 }
