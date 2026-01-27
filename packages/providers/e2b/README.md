@@ -11,10 +11,10 @@ pnpm add @usbx/e2b
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@usbx/core";
+import { SandboxManager } from "@usbx/core";
 import { E2BProvider } from "@usbx/e2b";
 
-const sandbox = new UniversalSandbox({
+const sandbox = new SandboxManager({
   provider: new E2BProvider(),
 });
 

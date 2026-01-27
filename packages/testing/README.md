@@ -11,10 +11,10 @@ pnpm add @usbx/testing -D
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@usbx/core";
+import { SandboxManager } from "@usbx/core";
 import { LocalProvider } from "@usbx/testing";
 
-const sandbox = new UniversalSandbox({
+const sandbox = new SandboxManager({
   provider: new LocalProvider(),
 });
 

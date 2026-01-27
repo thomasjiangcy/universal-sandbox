@@ -11,10 +11,10 @@ pnpm add @usbx/daytona
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@usbx/core";
+import { SandboxManager } from "@usbx/core";
 import { DaytonaProvider } from "@usbx/daytona";
 
-const sandbox = new UniversalSandbox({
+const sandbox = new SandboxManager({
   provider: new DaytonaProvider({
     createParams: { language: "typescript" },
   }),

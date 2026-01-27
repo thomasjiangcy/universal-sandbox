@@ -1,6 +1,6 @@
 import type { CreateOptions, Sandbox, SandboxProvider } from "./types.js";
 
-export type UniversalSandboxOptions<
+export type SandboxManagerOptions<
   TSandboxNative = unknown,
   TProviderNative = unknown,
   TProviderOptions = unknown,
@@ -8,14 +8,14 @@ export type UniversalSandboxOptions<
   provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
 };
 
-export class UniversalSandbox<
+export class SandboxManager<
   TSandboxNative = unknown,
   TProviderNative = unknown,
   TProviderOptions = unknown,
 > {
   private provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
 
-  constructor(options: UniversalSandboxOptions<TSandboxNative, TProviderNative, TProviderOptions>) {
+  constructor(options: SandboxManagerOptions<TSandboxNative, TProviderNative, TProviderOptions>) {
     this.provider = options.provider;
   }
 

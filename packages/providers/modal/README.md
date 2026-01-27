@@ -11,10 +11,10 @@ pnpm add @usbx/modal
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@usbx/core";
+import { SandboxManager } from "@usbx/core";
 import { ModalProvider } from "@usbx/modal";
 
-const sandbox = new UniversalSandbox({
+const sandbox = new SandboxManager({
   provider: new ModalProvider({
     appName: "usbx-sandbox",
     imageRef: "python:3.13-slim",
