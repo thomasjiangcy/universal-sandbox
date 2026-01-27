@@ -15,13 +15,13 @@
 - 43a1eef: Add provider-level sandbox deletion support via the unified delete API.
 - cbd4229: Add unified service URL support across core types and providers, with provider-specific behavior and e2e coverage.
 
-## 1.0.0-alpha.6
+## 0.1.0-alpha.6
 
 ### Minor Changes
 
 - 5583843: Remove the `getServiceUrl` and `getTcpProxy` methods from the public sandbox API.
 
-## 1.0.0-alpha.5
+## 0.1.0-alpha.5
 
 ### Major Changes
 
