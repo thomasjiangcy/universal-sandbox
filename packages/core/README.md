@@ -21,7 +21,3 @@ const sandbox = new SandboxManager({
 const sbx = await sandbox.create({ name: "my-sprite" });
 const result = await sbx.exec("echo", ["hello"]);
 ```
-
-### Notes
-
-- `getServiceUrl` is currently unsupported for the Sprites provider.

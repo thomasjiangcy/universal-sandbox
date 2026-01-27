@@ -29,73 +29,6 @@ export interface ExecStream {
   exitCode: Promise<number | null>;
 }
 
-export type ServiceUrlVisibility = "public" | "private";
-
-export type ServiceUrl = {
-  url: string;
-  headers?: Record<string, string>;
-  visibility: ServiceUrlVisibility;
-};
-
-export type GetServiceUrlOptions = {
-  port: number;
-  visibility?: ServiceUrlVisibility;
-  timeoutSeconds?: number;
-};
-
-export type TcpProxyInfo = {
-  url: string;
-  headers?: Record<string, string>;
-  visibility?: ServiceUrlVisibility;
-  protocol: "sprites-tcp-proxy-v1";
-  init: {
-    hostDefault: "localhost";
-    requiresHost: false;
-  };
-};
-
-export type GetTcpProxyOptions = {
-  port: number;
-  visibility?: ServiceUrlVisibility;
-  timeoutSeconds?: number;
-};
-
-export type ServiceUrlErrorCode =
-  | "visibility_mismatch"
-  | "service_not_found"
-  | "service_not_ready"
-  | "port_unavailable"
-  | "tunnel_unavailable"
-  | "unsupported";
-
-export class ServiceUrlError extends Error {
-  code: ServiceUrlErrorCode;
-
-  constructor(code: ServiceUrlErrorCode, message: string) {
-    super(message);
-    this.code = code;
-  }
-}
-
-export type TcpProxyErrorCode =
-  | "visibility_mismatch"
-  | "service_not_found"
-  | "service_not_ready"
-  | "port_unavailable"
-  | "proxy_start_failed"
-  | "proxy_unavailable"
-  | "tunnel_unavailable"
-  | "unsupported";
-
-export class TcpProxyError extends Error {
-  code: TcpProxyErrorCode;
-
-  constructor(code: TcpProxyErrorCode, message: string) {
-    super(message);
-    this.code = code;
-  }
-}
-
 export interface Sandbox<TNative = unknown, TProviderOptions = unknown> {
   id: SandboxId;
   name?: string;
@@ -109,8 +42,6 @@ export interface Sandbox<TNative = unknown, TProviderOptions = unknown> {
     args?: string[],
     options?: ExecOptions<TProviderOptions>,
   ): Promise<ExecStream>;
-  getServiceUrl(options: GetServiceUrlOptions): Promise<ServiceUrl>;
-  getTcpProxy(options: GetTcpProxyOptions): Promise<TcpProxyInfo>;
   native?: TNative;
 }
 

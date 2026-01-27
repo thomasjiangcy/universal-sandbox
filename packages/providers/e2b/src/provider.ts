@@ -60,7 +60,7 @@ export class E2BProvider implements SandboxProvider<
       sandbox = await E2BSandboxClient.create();
     }
 
-    return new E2BSandbox(sandbox, options?.name, this.allowPublicTraffic);
+    return new E2BSandbox(sandbox, options?.name);
   }
 
   async get(idOrName: string): Promise<Sandbox<E2BSandboxClient, E2BExecOptions>> {

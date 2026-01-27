@@ -76,18 +76,14 @@ export class LocalDockerProvider implements SandboxProvider<
     });
 
     await container.start();
-    return new LocalDockerSandbox(container.id, options.name, container, this.client, {
-      portExposure: this.portExposure,
-    });
+    return new LocalDockerSandbox(container.id, options.name, container, this.client);
   }
 
   async get(idOrName: string): Promise<Sandbox<Docker.Container, LocalDockerExecOptions>> {
     const container = this.client.getContainer(idOrName);
     const info = await container.inspect();
     const name = info.Name?.replace(/^\//, "") || idOrName;
-    return new LocalDockerSandbox(info.Id, name, container, this.client, {
-      portExposure: this.portExposure,
-    });
+    return new LocalDockerSandbox(info.Id, name, container, this.client);
   }
 
   async delete(idOrName: string): Promise<void> {

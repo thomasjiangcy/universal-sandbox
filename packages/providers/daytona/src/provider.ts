@@ -19,7 +19,6 @@ export class DaytonaProvider implements SandboxProvider<
   private client: Daytona;
   private createParams?: DaytonaCreateParams;
   private createOptions?: DaytonaProviderOptions["createOptions"];
-  private preferSignedUrl: boolean;
 
   native: Daytona;
 
@@ -32,7 +31,6 @@ export class DaytonaProvider implements SandboxProvider<
     if (options.createOptions !== undefined) {
       this.createOptions = options.createOptions;
     }
-    this.preferSignedUrl = options.preferSignedUrl ?? false;
   }
 
   async create(
@@ -48,12 +46,12 @@ export class DaytonaProvider implements SandboxProvider<
     }
 
     const sandbox = await this.client.create(createParams, this.createOptions);
-    return new DaytonaSandbox(sandbox, this.preferSignedUrl);
+    return new DaytonaSandbox(sandbox);
   }
 
   async get(idOrName: string): Promise<Sandbox<DaytonaSandboxClient, DaytonaExecOptions>> {
     const sandbox = await this.client.get(idOrName);
-    return new DaytonaSandbox(sandbox, this.preferSignedUrl);
+    return new DaytonaSandbox(sandbox);
   }
 
   async delete(idOrName: string): Promise<void> {

@@ -64,8 +64,6 @@ Note: the local Docker provider requires Docker to be installed and running.
 - `create` a sandbox with optional name and image/config per provider
 - `get` a sandbox (by name for some providers, by id for others)
 - `exec` a command inside the sandbox
-- `getServiceUrl` for exposed ports (support varies by provider)
-- `getTcpProxy` for TCP access (supported by most hosted providers)
 - `delete` to clean up
 
 Provider differences and edge cases are documented in each package README.
@@ -103,13 +101,11 @@ creates or fetches.
 
 ### Sandbox Instance
 
-| Method          | Signature                                                             | Returns                       | Description                                                               |
-| --------------- | --------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------- |
-| `exec`          | `exec(command: string, args?: string[], options?: ExecOptions)`       | `Promise<ExecResult>`         | Executes a command and returns stdout, stderr, and exit code.             |
-| `execStream`    | `execStream(command: string, args?: string[], options?: ExecOptions)` | `Promise<ExecStream>`         | Executes a command with streaming stdout/stderr (stdin may be supported). |
-| `getServiceUrl` | `getServiceUrl(options: GetServiceUrlOptions)`                        | `Promise<ServiceUrl>`         | Returns a URL for an exposed service port when supported.                 |
-| `getTcpProxy`   | `getTcpProxy(options: GetTcpProxyOptions)`                            | `Promise<TcpProxyInfo>`       | Returns TCP proxy connection info when supported.                         |
-| `native`        | `native?`                                                             | `TSandboxNative \| undefined` | Access to the provider’s native sandbox handle if exposed.                |
+| Method       | Signature                                                             | Returns                       | Description                                                               |
+| ------------ | --------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------- |
+| `exec`       | `exec(command: string, args?: string[], options?: ExecOptions)`       | `Promise<ExecResult>`         | Executes a command and returns stdout, stderr, and exit code.             |
+| `execStream` | `execStream(command: string, args?: string[], options?: ExecOptions)` | `Promise<ExecStream>`         | Executes a command with streaming stdout/stderr (stdin may be supported). |
+| `native`     | `native?`                                                             | `TSandboxNative \| undefined` | Access to the provider’s native sandbox handle if exposed.                |
 
 ## Provider Docs
 

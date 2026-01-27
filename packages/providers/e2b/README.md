@@ -26,7 +26,6 @@ const result = await sbx.exec("echo", ["hello"]);
 
 - `get` expects a sandbox id (E2B does not resolve by name).
 - Exec stdin is not supported in the unified API yet. Use `sandbox.native` for streaming.
-- `getTcpProxy` starts a lightweight WebSocket-to-TCP proxy inside the sandbox (Node.js required) and returns a Sprites-style tunnel URL.
 
 ### Links
 

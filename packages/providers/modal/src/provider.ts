@@ -3,7 +3,6 @@ import type { Image, SandboxCreateParams, Secret } from "modal";
 import type { CreateOptions, Sandbox, SandboxProvider } from "@usbx/core";
 
 import type { ModalExecOptions, ModalProviderOptions } from "./types.js";
-import { ensureTcpProxyPorts } from "./internal/tcp-proxy.js";
 import { ModalSandbox } from "./sandbox.js";
 
 export class ModalProvider implements SandboxProvider<
@@ -18,7 +17,6 @@ export class ModalProvider implements SandboxProvider<
   private imageRef?: string;
   private imageRegistrySecret?: Secret;
   private sandboxOptions?: SandboxCreateParams;
-  private authMode: ModalProviderOptions["authMode"];
 
   native?: App;
 
@@ -45,19 +43,18 @@ export class ModalProvider implements SandboxProvider<
     if (options.sandboxOptions !== undefined) {
       this.sandboxOptions = options.sandboxOptions;
     }
-    this.authMode = options.authMode ?? "header";
   }
 
   async create(options?: CreateOptions): Promise<Sandbox<ModalSandboxClient, ModalExecOptions>> {
     const app = await this.resolveApp();
     const image = await this.resolveImage(app);
-    const sandbox = await app.createSandbox(image, ensureTcpProxyPorts(this.sandboxOptions));
-    return new ModalSandbox(sandbox, options?.name, this.authMode);
+    const sandbox = await app.createSandbox(image, this.sandboxOptions);
+    return new ModalSandbox(sandbox, options?.name);
   }
 
   async get(idOrName: string): Promise<Sandbox<ModalSandboxClient, ModalExecOptions>> {
     const sandbox = await ModalSandboxClient.fromId(idOrName);
-    return new ModalSandbox(sandbox, undefined, this.authMode);
+    return new ModalSandbox(sandbox, undefined);
   }
 
   async delete(idOrName: string): Promise<void> {
