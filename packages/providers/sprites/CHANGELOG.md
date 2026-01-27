@@ -1,5 +1,16 @@
 # @usbx/sprites
 
+## 0.1.0-alpha.7
+
+### Minor Changes
+
+- 5583843: Remove the `getServiceUrl` and `getTcpProxy` methods from the public sandbox API.
+
+### Patch Changes
+
+- Updated dependencies [5583843]
+  - @usbx/core@1.0.0-alpha.6
+
 ## 0.1.0-alpha.6
 
 ### Patch Changes
