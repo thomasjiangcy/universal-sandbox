@@ -1,5 +1,11 @@
 # @usbx/core
 
+## 1.0.0-alpha.6
+
+### Minor Changes
+
+- 5583843: Remove the `getServiceUrl` and `getTcpProxy` methods from the public sandbox API.
+
 ## 1.0.0-alpha.5
 
 ### Major Changes
