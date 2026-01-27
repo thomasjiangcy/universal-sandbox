@@ -1,5 +1,28 @@
 # @usbx/local-docker
 
+## 0.1.0
+
+### Minor Changes
+
+- 9078671: add execStream support across core types and providers
+- 259fc35: Initial alpha release.
+- 5583843: Remove the `getServiceUrl` and `getTcpProxy` methods from the public sandbox API.
+- 76bacac: Add TCP proxy support to the core API and providers, plus e2e coverage.
+
+### Patch Changes
+
+- 7e1ecd1: Rename the Docker provider to `@usbx/local-docker` and clarify it as a local-only provider with local service URLs.
+- 43a1eef: Add provider-level sandbox deletion support via the unified delete API.
+- cbd4229: Add unified service URL support across core types and providers, with provider-specific behavior and e2e coverage.
+- Updated dependencies [9078671]
+- Updated dependencies [259fc35]
+- Updated dependencies [43a1eef]
+- Updated dependencies [5583843]
+- Updated dependencies [ad67438]
+- Updated dependencies [cbd4229]
+- Updated dependencies [76bacac]
+  - @usbx/core@0.1.0
+
 ## 0.1.0-alpha.7
 
 ### Minor Changes
@@ -9,14 +32,14 @@
 ### Patch Changes
 
 - Updated dependencies [5583843]
-  - @usbx/core@1.0.0-alpha.6
+  - @usbx/core@0.1.0-alpha.6
 
 ## 0.1.0-alpha.6
 
 ### Patch Changes
 
 - Updated dependencies [ad67438]
-  - @usbx/core@1.0.0-alpha.5
+  - @usbx/core@0.1.0-alpha.5
 
 ## 0.1.0-alpha.5
 
