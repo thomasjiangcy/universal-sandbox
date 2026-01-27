@@ -1,5 +1,12 @@
 # @usbx/testing
 
+## 0.1.0-alpha.5
+
+### Patch Changes
+
+- Updated dependencies [ad67438]
+  - @usbx/core@1.0.0-alpha.5
+
 ## 0.1.0-alpha.4
 
 ### Minor Changes

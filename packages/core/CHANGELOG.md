@@ -1,5 +1,11 @@
 # @usbx/core
 
+## 1.0.0-alpha.5
+
+### Major Changes
+
+- ad67438: rename UniversalSandbox to SandboxManager
+
 ## 0.1.0-alpha.4
 
 ### Minor Changes
