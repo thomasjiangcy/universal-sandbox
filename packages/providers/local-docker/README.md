@@ -11,10 +11,10 @@ pnpm add @usbx/local-docker
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@usbx/core";
+import { SandboxManager } from "@usbx/core";
 import { LocalDockerProvider } from "@usbx/local-docker";
 
-const sandbox = new UniversalSandbox({
+const sandbox = new SandboxManager({
   provider: new LocalDockerProvider({ defaultImage: "alpine" }),
 });
 

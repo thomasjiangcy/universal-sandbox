@@ -11,10 +11,10 @@ pnpm add @usbx/core
 ### Usage
 
 ```ts
-import { UniversalSandbox } from "@usbx/core";
+import { SandboxManager } from "@usbx/core";
 import { SpritesProvider } from "@usbx/sprites";
 
-const sandbox = new UniversalSandbox({
+const sandbox = new SandboxManager({
   provider: new SpritesProvider({ token: process.env.SPRITES_TOKEN }),
 });
 
