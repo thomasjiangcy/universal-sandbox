@@ -1,5 +1,20 @@
 # @usbx/core
 
+## 0.1.0
+
+### Minor Changes
+
+- ad67438: rename UniversalSandbox to SandboxManager
+- 9078671: add execStream support across core types and providers
+- 259fc35: Initial alpha release.
+- 5583843: Remove the `getServiceUrl` and `getTcpProxy` methods from the public sandbox API.
+- 76bacac: Add TCP proxy support to the core API and providers, plus e2e coverage.
+
+### Patch Changes
+
+- 43a1eef: Add provider-level sandbox deletion support via the unified delete API.
+- cbd4229: Add unified service URL support across core types and providers, with provider-specific behavior and e2e coverage.
+
 ## 1.0.0-alpha.6
 
 ### Minor Changes
