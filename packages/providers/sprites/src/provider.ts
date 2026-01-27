@@ -11,7 +11,6 @@ export class SpritesProvider implements SandboxProvider<
   SpritesExecOptions
 > {
   private client: SpritesClient;
-  private token: string | undefined;
 
   native: SpritesClient;
 
@@ -26,7 +25,6 @@ export class SpritesProvider implements SandboxProvider<
       throw new Error("SpritesProvider requires a token or a client.");
     }
 
-    this.token = options.token;
     this.client = new SpritesClient(options.token);
     this.native = this.client;
   }
@@ -46,7 +44,7 @@ export class SpritesProvider implements SandboxProvider<
     idOrName: string,
   ): Promise<Sandbox<ReturnType<SpritesClient["sprite"]>, SpritesExecOptions>> {
     const sprite = this.client.sprite(idOrName);
-    return new SpritesSandbox(idOrName, sprite, this.client, this.token);
+    return new SpritesSandbox(idOrName, sprite, this.client);
   }
 
   async delete(idOrName: string): Promise<void> {

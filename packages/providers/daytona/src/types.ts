@@ -5,10 +5,6 @@ import type {
   DaytonaConfig,
 } from "@daytonaio/sdk";
 
-export type DaytonaServiceUrlOptions = {
-  preferSignedUrl?: boolean;
-};
-
 export type DaytonaProviderOptions = {
   client?: Daytona;
   config?: DaytonaConfig;
@@ -17,6 +13,6 @@ export type DaytonaProviderOptions = {
     timeout?: number;
     onSnapshotCreateLogs?: (chunk: string) => void;
   };
-} & DaytonaServiceUrlOptions;
+};
 
 export type DaytonaExecOptions = never;
