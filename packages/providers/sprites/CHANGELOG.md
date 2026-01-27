@@ -1,5 +1,12 @@
 # @usbx/sprites
 
+## 0.1.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [ad67438]
+  - @usbx/core@1.0.0-alpha.5
+
 ## 0.1.0-alpha.5
 
 ### Minor Changes
