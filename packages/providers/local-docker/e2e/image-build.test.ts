@@ -53,10 +53,6 @@ describe("local-docker e2e image build", () => {
       dockerfilePath: "Dockerfile",
       name: imageName,
     });
-
-    const name = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const sandbox = await provider.create({ name, image });
-    cleanup.add(() => provider.delete(sandbox.id));
     cleanup.add(async () => {
       try {
         await provider.native.getImage(imageName).remove({ force: true });
@@ -64,6 +60,10 @@ describe("local-docker e2e image build", () => {
         // Best-effort cleanup.
       }
     });
+
+    const name = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const sandbox = await provider.create({ name, image });
+    cleanup.add(() => provider.delete(sandbox.id));
 
     const result = await sandbox.exec("cat", ["/hello.txt"]);
     expect(result.stdout).toContain("hello");

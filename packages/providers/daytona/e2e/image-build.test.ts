@@ -40,10 +40,6 @@ describe("daytona e2e image build", () => {
       name: snapshotName,
       baseImage: "python:3.12-slim",
     });
-
-    const sandboxName = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const sandbox = await provider.create({ name: sandboxName, image });
-    cleanup.add(() => provider.delete(sandbox.id));
     cleanup.add(async () => {
       try {
         const snapshot = await provider.native.snapshot.get(snapshotName);
@@ -52,6 +48,10 @@ describe("daytona e2e image build", () => {
         // Best-effort cleanup.
       }
     });
+
+    const sandboxName = `usbx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const sandbox = await provider.create({ name: sandboxName, image });
+    cleanup.add(() => provider.delete(sandbox.id));
 
     const result = await sandbox.exec("echo", ["hello"]);
     expect(result.stdout).toContain("hello");

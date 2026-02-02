@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
+import { Image } from "modal";
+
 import { ModalProvider } from "../src/index.js";
 
 type CleanupTask = () => Promise<void>;
@@ -41,6 +43,16 @@ describe("modal e2e image build", () => {
     const image = await provider.images.build({
       baseImage: "python:3.13-slim",
       dockerfileCommands: ["RUN echo hello > /hello.txt"],
+    });
+    cleanup.add(async () => {
+      if (image.kind !== "built") {
+        return;
+      }
+      try {
+        await Image.delete(image.id);
+      } catch {
+        // Best-effort cleanup.
+      }
     });
 
     const sandbox = await provider.create({ image });
