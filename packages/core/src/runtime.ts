@@ -13,14 +13,12 @@ export type SandboxClientOptions<
 };
 
 type ProviderSandbox<TProvider extends SandboxProvider<unknown, unknown, unknown>> =
-  TProvider extends SandboxProvider<infer TSandboxNative, unknown, infer TProviderOptions>
-    ? Sandbox<TSandboxNative, TProviderOptions>
+  TProvider extends { create(options?: CreateOptions): Promise<infer TSandbox> }
+    ? TSandbox
     : Sandbox<unknown, unknown>;
 
 type ProviderNative<TProvider extends SandboxProvider<unknown, unknown, unknown>> =
-  TProvider extends SandboxProvider<unknown, infer TProviderNative, unknown>
-    ? TProviderNative | undefined
-    : undefined;
+  TProvider extends { native?: infer TProviderNative } ? TProviderNative | undefined : undefined;
 
 export class SandboxClient<
   TProvider extends SandboxProvider<unknown, unknown, unknown> = SandboxProvider,
@@ -30,7 +28,9 @@ export class SandboxClient<
 
   constructor(options: SandboxClientOptions<TProvider>) {
     this.provider = options.provider;
-    this.images = options.provider.images;
+    if (options.provider.images) {
+      this.images = options.provider.images;
+    }
   }
 
   get native(): ProviderNative<TProvider> {
@@ -75,7 +75,7 @@ export function createSandboxClient(
   options: SandboxClientOptions<SandboxProvider<unknown, unknown, unknown>>,
 ): SandboxClient<SandboxProvider<unknown, unknown, unknown>> {
   if (isImageCapableProvider(options.provider)) {
-    return new SandboxClientWithImages(options);
+    return new SandboxClientWithImages({ provider: options.provider });
   }
   return new SandboxClient(options);
 }
