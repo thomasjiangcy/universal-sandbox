@@ -1,5 +1,18 @@
 # @usbx/sprites
 
+## 0.2.0-alpha.0
+
+### Minor Changes
+
+- 1a85cd1: Add a provider image builder API and allow creating sandboxes from built or registry image references.
+  Rename `SandboxManager` to `SandboxClient`.
+  This change should be released as a prerelease.
+
+### Patch Changes
+
+- Updated dependencies [1a85cd1]
+  - @usbx/core@0.2.0-alpha.0
+
 ## 0.1.0
 
 ### Minor Changes
