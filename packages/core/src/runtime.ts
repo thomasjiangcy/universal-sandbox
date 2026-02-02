@@ -2,44 +2,42 @@ import type {
   CreateOptions,
   ImageBuilder,
   ImageCapableProvider,
+  Sandbox,
   SandboxProvider,
 } from "./types.js";
 
 export type SandboxClientOptions<
-  TProvider extends SandboxProvider<unknown, unknown, unknown> = SandboxProvider,
+  TSandboxNative = unknown,
+  TProviderNative = unknown,
+  TProviderOptions = unknown,
 > = {
-  provider: TProvider;
+  provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
 };
 
-type ProviderCreate<TProvider extends SandboxProvider<unknown, unknown, unknown>> = ReturnType<
-  TProvider["create"]
->;
-type ProviderGet<TProvider extends SandboxProvider<unknown, unknown, unknown>> = ReturnType<
-  TProvider["get"]
->;
-
 export class SandboxClient<
-  TProvider extends SandboxProvider<unknown, unknown, unknown> = SandboxProvider,
+  TSandboxNative = unknown,
+  TProviderNative = unknown,
+  TProviderOptions = unknown,
 > {
-  protected provider: TProvider;
+  protected provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
   images?: ImageBuilder;
 
-  constructor(options: SandboxClientOptions<TProvider>) {
+  constructor(options: SandboxClientOptions<TSandboxNative, TProviderNative, TProviderOptions>) {
     this.provider = options.provider;
     if (options.provider.images) {
       this.images = options.provider.images;
     }
   }
 
-  get native(): TProvider["native"] {
+  get native(): TProviderNative | undefined {
     return this.provider.native;
   }
 
-  create(options?: CreateOptions): ProviderCreate<TProvider> {
+  create(options?: CreateOptions): Promise<Sandbox<TSandboxNative, TProviderOptions>> {
     return this.provider.create(options);
   }
 
-  get(idOrName: string): ProviderGet<TProvider> {
+  get(idOrName: string): Promise<Sandbox<TSandboxNative, TProviderOptions>> {
     return this.provider.get(idOrName);
   }
 
@@ -49,11 +47,17 @@ export class SandboxClient<
 }
 
 export class SandboxClientWithImages<
-  TProvider extends ImageCapableProvider<unknown, unknown, unknown> = ImageCapableProvider,
-> extends SandboxClient<TProvider> {
+  TSandboxNative = unknown,
+  TProviderNative = unknown,
+  TProviderOptions = unknown,
+> extends SandboxClient<TSandboxNative, TProviderNative, TProviderOptions> {
   override images: ImageBuilder;
 
-  constructor(options: SandboxClientOptions<TProvider>) {
+  constructor(
+    options: SandboxClientOptions<TSandboxNative, TProviderNative, TProviderOptions> & {
+      provider: ImageCapableProvider<TSandboxNative, TProviderNative, TProviderOptions>;
+    },
+  ) {
     super(options);
     this.images = options.provider.images;
   }
@@ -64,16 +68,24 @@ const isImageCapableProvider = (
 ): provider is ImageCapableProvider<unknown, unknown, unknown> => provider.images !== undefined;
 
 export function createSandboxClient<
-  TProvider extends ImageCapableProvider<unknown, unknown, unknown>,
->(options: SandboxClientOptions<TProvider>): SandboxClientWithImages<TProvider>;
-export function createSandboxClient<TProvider extends SandboxProvider<unknown, unknown, unknown>>(
-  options: SandboxClientOptions<TProvider>,
-): SandboxClient<TProvider>;
+  TSandboxNative = unknown,
+  TProviderNative = unknown,
+  TProviderOptions = unknown,
+>(
+  options: SandboxClientOptions<TSandboxNative, TProviderNative, TProviderOptions> & {
+    provider: ImageCapableProvider<TSandboxNative, TProviderNative, TProviderOptions>;
+  },
+): SandboxClientWithImages<TSandboxNative, TProviderNative, TProviderOptions>;
+export function createSandboxClient<
+  TSandboxNative = unknown,
+  TProviderNative = unknown,
+  TProviderOptions = unknown,
+>(
+  options: SandboxClientOptions<TSandboxNative, TProviderNative, TProviderOptions>,
+): SandboxClient<TSandboxNative, TProviderNative, TProviderOptions>;
 export function createSandboxClient(
-  options: SandboxClientOptions<SandboxProvider<unknown, unknown, unknown>>,
-):
-  | SandboxClient<SandboxProvider<unknown, unknown, unknown>>
-  | SandboxClientWithImages<ImageCapableProvider<unknown, unknown, unknown>> {
+  options: SandboxClientOptions,
+): SandboxClient | SandboxClientWithImages {
   if (isImageCapableProvider(options.provider)) {
     return new SandboxClientWithImages({ provider: options.provider });
   }
