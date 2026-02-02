@@ -27,7 +27,11 @@ const resolveTag = (spec: ImageBuildSpec): string => {
     throw new Error("LocalDocker image build supports at most one tag.");
   }
   if (spec.tags && spec.tags.length === 1) {
-    return spec.tags[0];
+    const [tag] = spec.tags;
+    if (!tag) {
+      throw new Error("LocalDocker image build requires a tag value.");
+    }
+    return tag;
   }
   if (spec.name) {
     return spec.name;
