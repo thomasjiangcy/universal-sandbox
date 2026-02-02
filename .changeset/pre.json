@@ -10,5 +10,5 @@
     "@usbx/sprites": "0.1.0",
     "@usbx/testing": "0.1.0"
   },
-  "changesets": ["image-builders"]
+  "changesets": []
 }
