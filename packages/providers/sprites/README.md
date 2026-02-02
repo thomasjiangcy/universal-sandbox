@@ -11,16 +11,26 @@ pnpm add @usbx/sprites
 ### Usage
 
 ```ts
-import { SandboxManager } from "@usbx/core";
+import { SandboxClient } from "@usbx/core";
 import { SpritesProvider } from "@usbx/sprites";
 
-const sandbox = new SandboxManager({
+const client = new SandboxClient({
   provider: new SpritesProvider({ token: process.env.SPRITES_TOKEN }),
 });
 
-const sbx = await sandbox.create({ name: "my-sprite" });
+const sbx = await client.create({ name: "my-sprite" });
 const result = await sbx.exec("echo", ["hello"]);
 ```
+
+### Image Building
+
+Sprites does not support building base images through the unified API.
+
+### ImageRef Mapping
+
+| ImageRef.kind | Meaning     |
+| ------------- | ----------- |
+| N/A           | Unsupported |
 
 ### Notes
 

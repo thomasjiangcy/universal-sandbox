@@ -1,6 +1,14 @@
-import { Sandbox as E2BSandboxClient } from "e2b";
+import { Sandbox as E2BSandboxClient, Template } from "e2b";
 import type { SandboxConnectOpts, SandboxOpts } from "e2b";
-import type { CreateOptions, Sandbox, SandboxProvider } from "@usbx/core";
+import type {
+  CreateOptions,
+  ImageBuildSpec,
+  ImageBuilder,
+  ImageRef,
+  ImageRegistrySpec,
+  Sandbox,
+  SandboxProvider,
+} from "@usbx/core";
 
 import type { E2BExecOptions, E2BProviderOptions } from "./types.js";
 import { E2BSandbox } from "./sandbox.js";
@@ -10,12 +18,14 @@ export class E2BProvider implements SandboxProvider<
   typeof E2BSandboxClient,
   E2BExecOptions
 > {
+  private static providerId = "e2b";
   private template?: string;
   private createOptions?: SandboxOpts;
   private connectOptions?: SandboxConnectOpts;
   private allowPublicTraffic?: boolean;
 
   native: typeof E2BSandboxClient;
+  images: ImageBuilder;
 
   constructor(options: E2BProviderOptions = {}) {
     if (options.template !== undefined) {
@@ -31,6 +41,35 @@ export class E2BProvider implements SandboxProvider<
       this.allowPublicTraffic = options.allowPublicTraffic;
     }
     this.native = E2BSandboxClient;
+
+    this.images = {
+      build: async (spec: ImageBuildSpec): Promise<ImageRef> => {
+        if (!spec.name) {
+          throw new Error("E2B image build requires name for the template alias.");
+        }
+        const template = this.buildTemplate(spec);
+        const buildInfo = await Template.build(template, { alias: spec.name });
+        return {
+          provider: E2BProvider.providerId,
+          kind: "template",
+          id: buildInfo.templateId,
+          metadata: { alias: buildInfo.alias },
+        };
+      },
+      fromRegistry: async (spec: ImageRegistrySpec): Promise<ImageRef> => {
+        if (!spec.name) {
+          throw new Error("E2B registry images require name for the template alias.");
+        }
+        const template = Template().fromImage(spec.ref);
+        const buildInfo = await Template.build(template, { alias: spec.name });
+        return {
+          provider: E2BProvider.providerId,
+          kind: "template",
+          id: buildInfo.templateId,
+          metadata: { alias: buildInfo.alias },
+        };
+      },
+    };
   }
 
   async create(options?: CreateOptions): Promise<Sandbox<E2BSandboxClient, E2BExecOptions>> {
@@ -48,12 +87,25 @@ export class E2BProvider implements SandboxProvider<
       createOptions = createOptions ? { ...createOptions, metadata } : { metadata };
     }
 
+    let template = this.template;
+    if (options?.image) {
+      if (options.image.provider !== E2BProvider.providerId) {
+        throw new Error(
+          `E2BProvider.create cannot use image from provider "${options.image.provider}".`,
+        );
+      }
+      if (options.image.kind !== "template") {
+        throw new Error("E2BProvider.create requires a template image reference.");
+      }
+      template = options.image.id;
+    }
+
     let sandbox: E2BSandboxClient;
-    if (this.template) {
+    if (template) {
       sandbox =
         createOptions === undefined
-          ? await E2BSandboxClient.create(this.template)
-          : await E2BSandboxClient.create(this.template, createOptions);
+          ? await E2BSandboxClient.create(template)
+          : await E2BSandboxClient.create(template, createOptions);
     } else if (createOptions) {
       sandbox = await E2BSandboxClient.create(createOptions);
     } else {
@@ -71,5 +123,24 @@ export class E2BProvider implements SandboxProvider<
   async delete(idOrName: string): Promise<void> {
     const sandbox = await E2BSandboxClient.connect(idOrName, this.connectOptions);
     await sandbox.kill();
+  }
+
+  private buildTemplate(spec: ImageBuildSpec) {
+    if (spec.dockerfileCommands && spec.dockerfileCommands.length > 0) {
+      throw new Error("E2B image build does not support dockerfileCommands.");
+    }
+    if (spec.dockerfileContent && spec.dockerfilePath) {
+      throw new Error("E2B image build cannot use both dockerfileContent and dockerfilePath.");
+    }
+    if (spec.dockerfileContent) {
+      return Template().fromDockerfile(spec.dockerfileContent);
+    }
+    if (spec.dockerfilePath) {
+      return Template().fromDockerfile(spec.dockerfilePath);
+    }
+    if (spec.baseImage) {
+      return Template().fromImage(spec.baseImage);
+    }
+    throw new Error("E2B image build requires dockerfileContent, dockerfilePath, or baseImage.");
   }
 }

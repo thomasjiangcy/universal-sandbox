@@ -1,6 +1,7 @@
 import type { CreateOptions, Sandbox, SandboxProvider } from "./types.js";
+import type { ImageBuilder } from "./types.js";
 
-export type SandboxManagerOptions<
+export type SandboxClientOptions<
   TSandboxNative = unknown,
   TProviderNative = unknown,
   TProviderOptions = unknown,
@@ -8,19 +9,23 @@ export type SandboxManagerOptions<
   provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
 };
 
-export class SandboxManager<
+export class SandboxClient<
   TSandboxNative = unknown,
   TProviderNative = unknown,
   TProviderOptions = unknown,
 > {
   private provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
 
-  constructor(options: SandboxManagerOptions<TSandboxNative, TProviderNative, TProviderOptions>) {
+  constructor(options: SandboxClientOptions<TSandboxNative, TProviderNative, TProviderOptions>) {
     this.provider = options.provider;
   }
 
   get native(): TProviderNative | undefined {
     return this.provider.native;
+  }
+
+  get images(): ImageBuilder | undefined {
+    return this.provider.images;
   }
 
   async create(options?: CreateOptions): Promise<Sandbox<TSandboxNative, TProviderOptions>> {
