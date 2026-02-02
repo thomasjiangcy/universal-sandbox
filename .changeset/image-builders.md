@@ -4,6 +4,8 @@
 "@usbx/e2b": minor
 "@usbx/local-docker": minor
 "@usbx/modal": minor
+"@usbx/sprites": minor
+"@usbx/testing": minor
 ---
 
 Add a provider image builder API and allow creating sandboxes from built or registry image references.
