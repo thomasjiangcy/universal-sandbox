@@ -11,13 +11,13 @@ pnpm add @usbx/testing -D
 ### Usage
 
 ```ts
-import { SandboxManager } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { LocalProvider } from "@usbx/testing";
 
-const sandbox = new SandboxManager({
+const client = createSandboxClient({
   provider: new LocalProvider(),
 });
 
-const sbx = await sandbox.create({ name: "local" });
+const sbx = await client.create({ name: "local" });
 const result = await sbx.exec("echo", ["hello"]);
 ```

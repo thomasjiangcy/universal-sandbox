@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SandboxManager } from "../../../core/src/index.js";
+import { SandboxClient } from "../../../core/src/index.js";
 import { LocalProvider } from "../index.js";
 
 const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<string> => {
@@ -22,10 +22,10 @@ const readStreamText = async (stream: ReadableStream<Uint8Array>): Promise<strin
   return output;
 };
 
-describe("SandboxManager", () => {
+describe("SandboxClient", () => {
   it("creates and gets sandboxes through the provider", async () => {
     const provider = new LocalProvider({ defaultName: "local-test" });
-    const runtime = new SandboxManager({ provider });
+    const runtime = new SandboxClient({ provider });
 
     const created = await runtime.create({ name: "sbx-1" });
     const fetched = await runtime.get("sbx-1");
@@ -36,7 +36,7 @@ describe("SandboxManager", () => {
 
   it("executes a command through the provider", async () => {
     const provider = new LocalProvider({ defaultName: "local-test" });
-    const runtime = new SandboxManager({ provider });
+    const runtime = new SandboxClient({ provider });
     const sandbox = await runtime.create({ name: "sbx-2" });
 
     const result = await sandbox.exec("echo", ["hello"]);
@@ -47,7 +47,7 @@ describe("SandboxManager", () => {
 
   it("streams a command through the provider", async () => {
     const provider = new LocalProvider({ defaultName: "local-test" });
-    const runtime = new SandboxManager({ provider });
+    const runtime = new SandboxClient({ provider });
     const sandbox = await runtime.create({ name: "sbx-2-stream" });
 
     const result = await sandbox.execStream("echo", ["hello"]);
@@ -61,7 +61,7 @@ describe("SandboxManager", () => {
 
   it("deletes a sandbox through the provider", async () => {
     const provider = new LocalProvider({ defaultName: "local-test" });
-    const runtime = new SandboxManager({ provider });
+    const runtime = new SandboxClient({ provider });
     await runtime.create({ name: "sbx-3" });
 
     await runtime.delete("sbx-3");

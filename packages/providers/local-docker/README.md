@@ -11,20 +11,42 @@ pnpm add @usbx/local-docker
 ### Usage
 
 ```ts
-import { SandboxManager } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { LocalDockerProvider } from "@usbx/local-docker";
 
-const sandbox = new SandboxManager({
+const client = createSandboxClient({
   provider: new LocalDockerProvider({ defaultImage: "alpine" }),
 });
 
-const sbx = await sandbox.create({ name: "my-container" });
+const sbx = await client.create({ name: "my-container" });
 const result = await sbx.exec("echo", ["hello"]);
 ```
+
+### Image Building
+
+```ts
+const image = await client.images.build({
+  contextPath: "./images/python",
+  dockerfilePath: "Dockerfile",
+  name: "usbx-python-dev",
+});
+
+const sbx = await client.create({ name: "my-container", image });
+```
+
+### ImageRef Mapping
+
+| ImageRef.kind | Meaning                     |
+| ------------- | --------------------------- |
+| `built`       | Local Docker image tag      |
+| `registry`    | Registry tag pulled locally |
 
 ### Notes
 
 - Docker exec stdin is not supported in the unified API yet.
+- Image builds require `contextPath`, and `dockerfilePath` must be within the context.
+- `dockerfileContent` and `dockerfileCommands` are not supported in the unified build API for Local Docker.
+- At most one tag is supported (use `name` or a single `tags` entry).
 
 ### Links
 

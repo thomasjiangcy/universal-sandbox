@@ -1,26 +1,37 @@
-import { Daytona } from "@daytonaio/sdk";
+import { Daytona, Image } from "@daytonaio/sdk";
 import type {
+  CreateSandboxBaseParams,
   CreateSandboxFromImageParams,
   CreateSandboxFromSnapshotParams,
   Sandbox as DaytonaSandboxClient,
 } from "@daytonaio/sdk";
-import type { CreateOptions, Sandbox, SandboxProvider } from "@usbx/core";
+import type {
+  CreateOptions,
+  ImageBuildSpec,
+  ImageBuilder,
+  ImageCapableProvider,
+  ImageRef,
+  ImageRegistrySpec,
+  Sandbox,
+} from "@usbx/core";
 
 import type { DaytonaExecOptions, DaytonaProviderOptions } from "./types.js";
 import { DaytonaSandbox } from "./sandbox.js";
 
 type DaytonaCreateParams = CreateSandboxFromImageParams | CreateSandboxFromSnapshotParams;
 
-export class DaytonaProvider implements SandboxProvider<
+export class DaytonaProvider implements ImageCapableProvider<
   DaytonaSandboxClient,
   Daytona,
   DaytonaExecOptions
 > {
+  private static providerId = "daytona";
   private client: Daytona;
   private createParams?: DaytonaCreateParams;
   private createOptions?: DaytonaProviderOptions["createOptions"];
 
   native: Daytona;
+  images: ImageBuilder;
 
   constructor(options: DaytonaProviderOptions = {}) {
     this.client = options.client ?? new Daytona(options.config);
@@ -31,6 +42,42 @@ export class DaytonaProvider implements SandboxProvider<
     if (options.createOptions !== undefined) {
       this.createOptions = options.createOptions;
     }
+
+    this.images = {
+      build: async (spec: ImageBuildSpec): Promise<ImageRef> => {
+        if (!spec.name) {
+          throw new Error("Daytona image build requires name for the snapshot.");
+        }
+        const image = this.buildImage(spec);
+        const snapshot = await this.client.snapshot.create(
+          { name: spec.name, image },
+          this.buildSnapshotOptions(),
+        );
+        return {
+          provider: DaytonaProvider.providerId,
+          kind: "snapshot",
+          id: snapshot.name,
+        };
+      },
+      fromRegistry: async (spec: ImageRegistrySpec): Promise<ImageRef> => {
+        if (spec.name) {
+          const snapshot = await this.client.snapshot.create(
+            { name: spec.name, image: spec.ref },
+            this.buildSnapshotOptions(),
+          );
+          return {
+            provider: DaytonaProvider.providerId,
+            kind: "snapshot",
+            id: snapshot.name,
+          };
+        }
+        return {
+          provider: DaytonaProvider.providerId,
+          kind: "registry",
+          id: spec.ref,
+        };
+      },
+    };
   }
 
   async create(
@@ -43,6 +90,27 @@ export class DaytonaProvider implements SandboxProvider<
       createParams = createParams
         ? { ...createParams, name: options.name }
         : { name: options.name };
+    }
+    if (options?.image) {
+      if (options.image.provider !== DaytonaProvider.providerId) {
+        throw new Error(
+          `DaytonaProvider.create cannot use image from provider "${options.image.provider}".`,
+        );
+      }
+      const baseParams = this.extractBaseParams(createParams);
+      if (options.image.kind === "snapshot") {
+        const params: CreateSandboxFromSnapshotParams = {
+          ...baseParams,
+          snapshot: options.image.id,
+        };
+        createParams = params;
+      } else {
+        const params: CreateSandboxFromImageParams = {
+          ...baseParams,
+          image: options.image.id,
+        };
+        createParams = params;
+      }
     }
 
     const sandbox = await this.client.create(createParams, this.createOptions);
@@ -57,5 +125,81 @@ export class DaytonaProvider implements SandboxProvider<
   async delete(idOrName: string): Promise<void> {
     const sandbox = await this.client.get(idOrName);
     await this.client.delete(sandbox);
+  }
+
+  private buildImage(spec: ImageBuildSpec): Image {
+    if (spec.dockerfileCommands && spec.dockerfileCommands.length > 0) {
+      throw new Error("Daytona image build does not support dockerfileCommands.");
+    }
+    if (spec.dockerfileContent && spec.dockerfilePath) {
+      throw new Error("Daytona image build cannot use both dockerfileContent and dockerfilePath.");
+    }
+    if (spec.dockerfileContent) {
+      throw new Error("Daytona image build does not support dockerfileContent.");
+    }
+    if (spec.dockerfilePath) {
+      return Image.fromDockerfile(spec.dockerfilePath);
+    }
+    if (spec.baseImage) {
+      return Image.base(spec.baseImage);
+    }
+    throw new Error("Daytona image build requires dockerfilePath or baseImage.");
+  }
+
+  private extractBaseParams(
+    createParams: DaytonaCreateParams | undefined,
+  ): CreateSandboxBaseParams {
+    if (!createParams) {
+      return {};
+    }
+    const {
+      name,
+      user,
+      language,
+      envVars,
+      labels,
+      public: isPublic,
+      autoStopInterval,
+      autoArchiveInterval,
+      autoDeleteInterval,
+      volumes,
+      networkBlockAll,
+      networkAllowList,
+      ephemeral,
+    } = createParams;
+    return {
+      ...(name !== undefined ? { name } : {}),
+      ...(user !== undefined ? { user } : {}),
+      ...(language !== undefined ? { language } : {}),
+      ...(envVars !== undefined ? { envVars } : {}),
+      ...(labels !== undefined ? { labels } : {}),
+      ...(isPublic !== undefined ? { public: isPublic } : {}),
+      ...(autoStopInterval !== undefined ? { autoStopInterval } : {}),
+      ...(autoArchiveInterval !== undefined ? { autoArchiveInterval } : {}),
+      ...(autoDeleteInterval !== undefined ? { autoDeleteInterval } : {}),
+      ...(volumes !== undefined ? { volumes } : {}),
+      ...(networkBlockAll !== undefined ? { networkBlockAll } : {}),
+      ...(networkAllowList !== undefined ? { networkAllowList } : {}),
+      ...(ephemeral !== undefined ? { ephemeral } : {}),
+    };
+  }
+
+  private buildSnapshotOptions():
+    | {
+        onLogs?: (chunk: string) => void;
+        timeout?: number;
+      }
+    | undefined {
+    if (!this.createOptions) {
+      return undefined;
+    }
+    const options: { onLogs?: (chunk: string) => void; timeout?: number } = {};
+    if (this.createOptions.onSnapshotCreateLogs) {
+      options.onLogs = this.createOptions.onSnapshotCreateLogs;
+    }
+    if (this.createOptions.timeout !== undefined) {
+      options.timeout = this.createOptions.timeout;
+    }
+    return Object.keys(options).length > 0 ? options : undefined;
   }
 }

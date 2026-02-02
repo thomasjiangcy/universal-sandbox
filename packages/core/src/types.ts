@@ -2,10 +2,41 @@ export type SandboxId = string;
 
 export interface CreateOptions {
   name?: string;
+  image?: ImageRef;
 }
 
 export interface ListOptions {
   prefix?: string;
+}
+
+export type ImageRef = {
+  provider: string;
+  kind: "registry" | "built" | "template" | "snapshot";
+  id: string;
+  metadata?: Record<string, string>;
+};
+
+export type ImageBuildSpec = {
+  name?: string;
+  contextPath?: string;
+  dockerfilePath?: string;
+  dockerfileContent?: string;
+  dockerfileCommands?: string[];
+  baseImage?: string;
+  buildArgs?: Record<string, string>;
+  target?: string;
+  platform?: string;
+  tags?: string[];
+};
+
+export type ImageRegistrySpec = {
+  ref: string;
+  name?: string;
+};
+
+export interface ImageBuilder {
+  build(spec: ImageBuildSpec): Promise<ImageRef>;
+  fromRegistry(spec: ImageRegistrySpec): Promise<ImageRef>;
 }
 
 export interface ExecOptions<TProviderOptions = unknown> {
@@ -53,5 +84,14 @@ export interface SandboxProvider<
   create(options?: CreateOptions): Promise<Sandbox<TSandboxNative, TProviderOptions>>;
   get(idOrName: string): Promise<Sandbox<TSandboxNative, TProviderOptions>>;
   delete(idOrName: string): Promise<void>;
+  images?: ImageBuilder;
   native?: TProviderNative;
+}
+
+export interface ImageCapableProvider<
+  TSandboxNative = unknown,
+  TProviderNative = unknown,
+  TProviderOptions = unknown,
+> extends SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions> {
+  images: ImageBuilder;
 }

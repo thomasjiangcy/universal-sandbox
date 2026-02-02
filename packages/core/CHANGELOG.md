@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- ad67438: rename UniversalSandbox to SandboxManager
+- ad67438: rename UniversalSandbox to SandboxClient
 - 9078671: add execStream support across core types and providers
 - 259fc35: Initial alpha release.
 - 5583843: Remove the `getServiceUrl` and `getTcpProxy` methods from the public sandbox API.
@@ -25,7 +25,7 @@
 
 ### Major Changes
 
-- ad67438: rename UniversalSandbox to SandboxManager
+- ad67438: rename UniversalSandbox to SandboxClient
 
 ## 0.1.0-alpha.4
 

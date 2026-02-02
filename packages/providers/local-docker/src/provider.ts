@@ -1,5 +1,16 @@
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import Docker from "dockerode";
-import type { CreateOptions, Sandbox, SandboxProvider } from "@usbx/core";
+import * as tar from "tar-fs";
+import type {
+  CreateOptions,
+  ImageBuildSpec,
+  ImageBuilder,
+  ImageCapableProvider,
+  ImageRef,
+  ImageRegistrySpec,
+  Sandbox,
+} from "@usbx/core";
 
 import type {
   LocalDockerExecOptions,
@@ -9,7 +20,26 @@ import type {
 import { buildPortExposureConfig, resolvePortExposure } from "./internal/ports.js";
 import { LocalDockerSandbox } from "./sandbox.js";
 
-export class LocalDockerProvider implements SandboxProvider<
+const LOCAL_DOCKER_PROVIDER_ID = "local-docker";
+
+const resolveTag = (spec: ImageBuildSpec): string => {
+  if (spec.tags && spec.tags.length > 1) {
+    throw new Error("LocalDocker image build supports at most one tag.");
+  }
+  if (spec.tags && spec.tags.length === 1) {
+    const [tag] = spec.tags;
+    if (!tag) {
+      throw new Error("LocalDocker image build requires a tag value.");
+    }
+    return tag;
+  }
+  if (spec.name) {
+    return spec.name;
+  }
+  return `usbx-${randomUUID()}`;
+};
+
+export class LocalDockerProvider implements ImageCapableProvider<
   Docker.Container,
   Docker,
   LocalDockerExecOptions
@@ -20,6 +50,7 @@ export class LocalDockerProvider implements SandboxProvider<
   private portExposure: Required<LocalDockerPortExposure>;
 
   native: Docker;
+  images: ImageBuilder;
 
   constructor(options: LocalDockerProviderOptions = {}) {
     if (options.docker) {
@@ -48,6 +79,63 @@ export class LocalDockerProvider implements SandboxProvider<
     }
     this.defaultCommand = options.defaultCommand ?? ["sleep", "infinity"];
     this.portExposure = resolvePortExposure(options.portExposure);
+
+    this.images = {
+      build: async (spec: ImageBuildSpec): Promise<ImageRef> => {
+        if (!spec.contextPath) {
+          throw new Error("LocalDocker image build requires contextPath.");
+        }
+        if (spec.dockerfileContent) {
+          throw new Error("LocalDocker image build does not support dockerfileContent.");
+        }
+        if (spec.dockerfileCommands && spec.dockerfileCommands.length > 0) {
+          throw new Error("LocalDocker image build does not support dockerfileCommands.");
+        }
+
+        const contextPath = path.resolve(spec.contextPath);
+        const dockerfilePath = spec.dockerfilePath ?? "Dockerfile";
+        const resolvedDockerfile = path.resolve(contextPath, dockerfilePath);
+        const dockerfileRelative = path.relative(contextPath, resolvedDockerfile);
+        if (dockerfileRelative.startsWith("..")) {
+          throw new Error("LocalDocker dockerfilePath must be within contextPath.");
+        }
+
+        const tag = resolveTag(spec);
+        const buildOptions: Docker.ImageBuildOptions = {
+          dockerfile: dockerfileRelative,
+          t: tag,
+          ...(spec.buildArgs ? { buildargs: spec.buildArgs } : {}),
+          ...(spec.target ? { target: spec.target } : {}),
+          ...(spec.platform ? { platform: spec.platform } : {}),
+        };
+
+        const tarStream = tar.pack(contextPath);
+        const stream = await this.client.buildImage(tarStream, buildOptions);
+        await new Promise<void>((resolve, reject) => {
+          this.client.modem.followProgress(stream, (error: Error | null) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          });
+        });
+
+        return {
+          provider: LOCAL_DOCKER_PROVIDER_ID,
+          kind: "built",
+          id: tag,
+        };
+      },
+      fromRegistry: async (spec: ImageRegistrySpec): Promise<ImageRef> => {
+        await this.ensureImage(spec.ref);
+        return {
+          provider: LOCAL_DOCKER_PROVIDER_ID,
+          kind: "registry",
+          id: spec.ref,
+        };
+      },
+    };
   }
 
   async create(
@@ -57,18 +145,26 @@ export class LocalDockerProvider implements SandboxProvider<
       throw new Error("LocalDockerProvider.create requires a name.");
     }
 
-    if (!this.defaultImage) {
+    const imageRef = options?.image;
+    if (imageRef && imageRef.provider !== LOCAL_DOCKER_PROVIDER_ID) {
       throw new Error(
-        "LocalDockerProvider requires defaultImage in the constructor to create containers.",
+        `LocalDockerProvider.create cannot use image from provider "${imageRef.provider}".`,
       );
     }
 
-    await this.ensureImage(this.defaultImage);
+    const image = imageRef?.id ?? this.defaultImage;
+    if (!image) {
+      throw new Error(
+        "LocalDockerProvider requires defaultImage or CreateOptions.image to create containers.",
+      );
+    }
+
+    await this.ensureImage(image);
 
     const { ExposedPorts, HostConfig } = buildPortExposureConfig(this.portExposure);
     const container = await this.client.createContainer({
       name: options.name,
-      Image: this.defaultImage,
+      Image: image,
       Cmd: this.defaultCommand,
       Tty: false,
       ...(ExposedPorts ? { ExposedPorts } : {}),

@@ -29,10 +29,12 @@
   },
   "dependencies": {
     "@usbx/core": "workspace:*",
-    "dockerode": "^4.0.9"
+    "dockerode": "^4.0.9",
+    "tar-fs": "^3.0.9"
   },
   "devDependencies": {
-    "@types/dockerode": "^4.0.1"
+    "@types/dockerode": "^4.0.1",
+    "@types/tar-fs": "^2.0.4"
   },
   "engines": {
     "node": ">=24.13.0 <25",

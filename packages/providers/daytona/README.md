@@ -11,23 +11,45 @@ pnpm add @usbx/daytona
 ### Usage
 
 ```ts
-import { SandboxManager } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { DaytonaProvider } from "@usbx/daytona";
 
-const sandbox = new SandboxManager({
+const client = createSandboxClient({
   provider: new DaytonaProvider({
     createParams: { language: "typescript" },
   }),
 });
 
-const sbx = await sandbox.create({ name: "my-daytona-sbx" });
+const sbx = await client.create({ name: "my-daytona-sbx" });
 const result = await sbx.exec("echo", ["hello"]);
 ```
+
+### Image Building
+
+```ts
+const image = await client.images.build({
+  name: "py-snapshot",
+  baseImage: "python:3.12-slim",
+});
+
+const sbx = await client.create({ name: "my-daytona-sbx", image });
+```
+
+### ImageRef Mapping
+
+| ImageRef.kind | Meaning                      |
+| ------------- | ---------------------------- |
+| `snapshot`    | Daytona snapshot name        |
+| `registry`    | Registry tag used for create |
 
 ### Notes
 
 - Exec stdin is not supported in the unified API yet.
 - `executeCommand` does not return stderr, so `stderr` is always empty.
+- Image builds create Daytona snapshots. `ImageRef.kind` is `snapshot` and `id` is the snapshot name.
+- `ImageBuildSpec.name` is required when building snapshots.
+- Supported build inputs: `baseImage` or `dockerfilePath`.
+- `dockerfileContent` and `dockerfileCommands` are not supported in the unified build API for Daytona.
 
 ### Links
 
