@@ -1,42 +1,81 @@
-import type { CreateOptions, Sandbox, SandboxProvider } from "./types.js";
-import type { ImageBuilder } from "./types.js";
+import type {
+  CreateOptions,
+  ImageBuilder,
+  ImageCapableProvider,
+  Sandbox,
+  SandboxProvider,
+} from "./types.js";
 
 export type SandboxClientOptions<
-  TSandboxNative = unknown,
-  TProviderNative = unknown,
-  TProviderOptions = unknown,
+  TProvider extends SandboxProvider<unknown, unknown, unknown> = SandboxProvider,
 > = {
-  provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
+  provider: TProvider;
 };
 
-export class SandboxClient<
-  TSandboxNative = unknown,
-  TProviderNative = unknown,
-  TProviderOptions = unknown,
-> {
-  private provider: SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions>;
+type ProviderSandbox<TProvider extends SandboxProvider<unknown, unknown, unknown>> =
+  TProvider extends SandboxProvider<infer TSandboxNative, unknown, infer TProviderOptions>
+    ? Sandbox<TSandboxNative, TProviderOptions>
+    : Sandbox<unknown, unknown>;
 
-  constructor(options: SandboxClientOptions<TSandboxNative, TProviderNative, TProviderOptions>) {
+type ProviderNative<TProvider extends SandboxProvider<unknown, unknown, unknown>> =
+  TProvider extends SandboxProvider<unknown, infer TProviderNative, unknown>
+    ? TProviderNative | undefined
+    : undefined;
+
+export class SandboxClient<
+  TProvider extends SandboxProvider<unknown, unknown, unknown> = SandboxProvider,
+> {
+  protected provider: TProvider;
+  images?: ImageBuilder;
+
+  constructor(options: SandboxClientOptions<TProvider>) {
     this.provider = options.provider;
+    this.images = options.provider.images;
   }
 
-  get native(): TProviderNative | undefined {
+  get native(): ProviderNative<TProvider> {
     return this.provider.native;
   }
 
-  get images(): ImageBuilder | undefined {
-    return this.provider.images;
-  }
-
-  async create(options?: CreateOptions): Promise<Sandbox<TSandboxNative, TProviderOptions>> {
+  async create(options?: CreateOptions): Promise<ProviderSandbox<TProvider>> {
     return this.provider.create(options);
   }
 
-  async get(idOrName: string): Promise<Sandbox<TSandboxNative, TProviderOptions>> {
+  async get(idOrName: string): Promise<ProviderSandbox<TProvider>> {
     return this.provider.get(idOrName);
   }
 
   async delete(idOrName: string): Promise<void> {
     return this.provider.delete(idOrName);
   }
+}
+
+export class SandboxClientWithImages<
+  TProvider extends ImageCapableProvider<unknown, unknown, unknown> = ImageCapableProvider,
+> extends SandboxClient<TProvider> {
+  override images: ImageBuilder;
+
+  constructor(options: SandboxClientOptions<TProvider>) {
+    super(options);
+    this.images = options.provider.images;
+  }
+}
+
+const isImageCapableProvider = (
+  provider: SandboxProvider<unknown, unknown, unknown>,
+): provider is ImageCapableProvider<unknown, unknown, unknown> => provider.images !== undefined;
+
+export function createSandboxClient<
+  TProvider extends ImageCapableProvider<unknown, unknown, unknown>,
+>(options: SandboxClientOptions<TProvider>): SandboxClientWithImages<TProvider>;
+export function createSandboxClient<TProvider extends SandboxProvider<unknown, unknown, unknown>>(
+  options: SandboxClientOptions<TProvider>,
+): SandboxClient<TProvider>;
+export function createSandboxClient(
+  options: SandboxClientOptions<SandboxProvider<unknown, unknown, unknown>>,
+): SandboxClient<SandboxProvider<unknown, unknown, unknown>> {
+  if (isImageCapableProvider(options.provider)) {
+    return new SandboxClientWithImages(options);
+  }
+  return new SandboxClient(options);
 }

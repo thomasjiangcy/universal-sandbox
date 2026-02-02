@@ -11,10 +11,10 @@ pnpm add @usbx/daytona
 ### Usage
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { DaytonaProvider } from "@usbx/daytona";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new DaytonaProvider({
     createParams: { language: "typescript" },
   }),
@@ -27,7 +27,7 @@ const result = await sbx.exec("echo", ["hello"]);
 ### Image Building
 
 ```ts
-const image = await client.images?.build({
+const image = await client.images.build({
   name: "py-snapshot",
   baseImage: "python:3.12-slim",
 });

@@ -11,10 +11,10 @@ pnpm add @usbx/core @usbx/modal
 ```
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { ModalProvider } from "@usbx/modal";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new ModalProvider({
     appName: "usbx-sandbox",
     imageRef: "python:3.13-slim",
@@ -35,10 +35,10 @@ pnpm add @usbx/local-docker
 ```
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { LocalDockerProvider } from "@usbx/local-docker";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new LocalDockerProvider({ defaultImage: "alpine" }),
 });
 
@@ -82,10 +82,10 @@ Provider differences and edge cases are documented in each package README.
 ## Public APIs
 
 Universal Sandbox is organized around a small public API surface. You construct
-a `SandboxClient` with a provider, then work with the `Sandbox` instances it
-creates or fetches.
+a `SandboxClient` with a provider (or use `createSandboxClient` for stricter
+typing), then work with the `Sandbox` instances it creates or fetches.
 
-- `@usbx/core` exports `SandboxClient` and shared types used by all providers.
+- `@usbx/core` exports `SandboxClient`, `createSandboxClient`, and shared types used by all providers.
 - Each provider package exports a single provider class (for example,
   `ModalProvider`, `LocalDockerProvider`, `SpritesProvider`, `E2BProvider`,
   `DaytonaProvider`).
@@ -93,13 +93,18 @@ creates or fetches.
 
 ### Client (SandboxClient)
 
-| Method   | Signature                         | Returns                        | Description                                                     |
-| -------- | --------------------------------- | ------------------------------ | --------------------------------------------------------------- |
-| `create` | `create(options?: CreateOptions)` | `Promise<Sandbox>`             | Creates a new sandbox via the provider.                         |
-| `get`    | `get(idOrName: string)`           | `Promise<Sandbox>`             | Fetches an existing sandbox by id or name (provider-dependent). |
-| `delete` | `delete(idOrName: string)`        | `Promise<void>`                | Deletes a sandbox by id or name (provider-dependent).           |
-| `images` | `get images()`                    | `ImageBuilder \| undefined`    | Optional provider image builder API.                            |
-| `native` | `get native()`                    | `TProviderNative \| undefined` | Access to the provider’s native client if exposed.              |
+| Method   | Signature                         | Returns                        | Description                                                                              |
+| -------- | --------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `create` | `create(options?: CreateOptions)` | `Promise<Sandbox>`             | Creates a new sandbox via the provider.                                                  |
+| `get`    | `get(idOrName: string)`           | `Promise<Sandbox>`             | Fetches an existing sandbox by id or name (provider-dependent).                          |
+| `delete` | `delete(idOrName: string)`        | `Promise<void>`                | Deletes a sandbox by id or name (provider-dependent).                                    |
+| `images` | `get images()`                    | `ImageBuilder \| undefined`    | Optional provider image builder API (required when supported via `createSandboxClient`). |
+| `native` | `get native()`                    | `TProviderNative \| undefined` | Access to the provider’s native client if exposed.                                       |
+
+### Factory (createSandboxClient)
+
+The factory returns a client with stricter typing for `images` when the provider
+supports image building.
 
 ### Sandbox Instance
 

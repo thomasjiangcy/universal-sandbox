@@ -87,3 +87,11 @@ export interface SandboxProvider<
   images?: ImageBuilder;
   native?: TProviderNative;
 }
+
+export interface ImageCapableProvider<
+  TSandboxNative = unknown,
+  TProviderNative = unknown,
+  TProviderOptions = unknown,
+> extends SandboxProvider<TSandboxNative, TProviderNative, TProviderOptions> {
+  images: ImageBuilder;
+}

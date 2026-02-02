@@ -9,10 +9,10 @@ import type {
   CreateOptions,
   ImageBuildSpec,
   ImageBuilder,
+  ImageCapableProvider,
   ImageRef,
   ImageRegistrySpec,
   Sandbox,
-  SandboxProvider,
 } from "@usbx/core";
 
 import type { DaytonaExecOptions, DaytonaProviderOptions } from "./types.js";
@@ -20,7 +20,7 @@ import { DaytonaSandbox } from "./sandbox.js";
 
 type DaytonaCreateParams = CreateSandboxFromImageParams | CreateSandboxFromSnapshotParams;
 
-export class DaytonaProvider implements SandboxProvider<
+export class DaytonaProvider implements ImageCapableProvider<
   DaytonaSandboxClient,
   Daytona,
   DaytonaExecOptions

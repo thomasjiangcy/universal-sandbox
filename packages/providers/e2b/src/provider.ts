@@ -4,16 +4,16 @@ import type {
   CreateOptions,
   ImageBuildSpec,
   ImageBuilder,
+  ImageCapableProvider,
   ImageRef,
   ImageRegistrySpec,
   Sandbox,
-  SandboxProvider,
 } from "@usbx/core";
 
 import type { E2BExecOptions, E2BProviderOptions } from "./types.js";
 import { E2BSandbox } from "./sandbox.js";
 
-export class E2BProvider implements SandboxProvider<
+export class E2BProvider implements ImageCapableProvider<
   E2BSandboxClient,
   typeof E2BSandboxClient,
   E2BExecOptions

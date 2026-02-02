@@ -4,16 +4,16 @@ import type {
   CreateOptions,
   ImageBuildSpec,
   ImageBuilder,
+  ImageCapableProvider,
   ImageRef,
   ImageRegistrySpec,
   Sandbox,
-  SandboxProvider,
 } from "@usbx/core";
 
 import type { ModalExecOptions, ModalProviderOptions } from "./types.js";
 import { ModalSandbox } from "./sandbox.js";
 
-export class ModalProvider implements SandboxProvider<
+export class ModalProvider implements ImageCapableProvider<
   ModalSandboxClient,
   App | undefined,
   ModalExecOptions

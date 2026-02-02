@@ -11,10 +11,10 @@ pnpm add @usbx/local-docker
 ### Usage
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { LocalDockerProvider } from "@usbx/local-docker";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new LocalDockerProvider({ defaultImage: "alpine" }),
 });
 
@@ -25,7 +25,7 @@ const result = await sbx.exec("echo", ["hello"]);
 ### Image Building
 
 ```ts
-const image = await client.images?.build({
+const image = await client.images.build({
   contextPath: "./images/python",
   dockerfilePath: "Dockerfile",
   name: "usbx-python-dev",

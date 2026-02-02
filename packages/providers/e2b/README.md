@@ -11,10 +11,10 @@ pnpm add @usbx/e2b
 ### Usage
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { E2BProvider } from "@usbx/e2b";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new E2BProvider(),
 });
 
@@ -25,7 +25,7 @@ const result = await sbx.exec("echo", ["hello"]);
 ### Image Building
 
 ```ts
-const image = await client.images?.build({
+const image = await client.images.build({
   name: "my-template",
   baseImage: "python:3.12-slim",
 });

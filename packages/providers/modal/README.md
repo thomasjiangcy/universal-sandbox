@@ -11,10 +11,10 @@ pnpm add @usbx/modal
 ### Usage
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { ModalProvider } from "@usbx/modal";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new ModalProvider({
     appName: "usbx-sandbox",
     imageRef: "python:3.13-slim",
@@ -28,7 +28,7 @@ const result = await sbx.exec("echo", ["hello"]);
 ### Image Building
 
 ```ts
-const image = await client.images?.build({
+const image = await client.images.build({
   name: "py-build",
   baseImage: "python:3.13-slim",
   dockerfileCommands: ["RUN pip install numpy"],

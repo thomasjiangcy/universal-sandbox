@@ -6,10 +6,10 @@ import type {
   CreateOptions,
   ImageBuildSpec,
   ImageBuilder,
+  ImageCapableProvider,
   ImageRef,
   ImageRegistrySpec,
   Sandbox,
-  SandboxProvider,
 } from "@usbx/core";
 
 import type {
@@ -39,7 +39,7 @@ const resolveTag = (spec: ImageBuildSpec): string => {
   return `usbx-${randomUUID()}`;
 };
 
-export class LocalDockerProvider implements SandboxProvider<
+export class LocalDockerProvider implements ImageCapableProvider<
   Docker.Container,
   Docker,
   LocalDockerExecOptions

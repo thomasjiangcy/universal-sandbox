@@ -11,10 +11,10 @@ pnpm add @usbx/core
 ### Usage
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { SpritesProvider } from "@usbx/sprites";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new SpritesProvider({ token: process.env.SPRITES_TOKEN }),
 });
 
@@ -25,14 +25,14 @@ const result = await sbx.exec("echo", ["hello"]);
 ### Building Images
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { LocalDockerProvider } from "@usbx/local-docker";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new LocalDockerProvider(),
 });
 
-const image = await client.images?.build({
+const image = await client.images.build({
   contextPath: "./images/python",
   dockerfilePath: "Dockerfile",
   name: "usbx-python-dev",
@@ -44,7 +44,7 @@ const sbx = await client.create({ name: "py-sandbox", image });
 ### Pulling Registry Images
 
 ```ts
-const image = await client.images?.fromRegistry({
+const image = await client.images.fromRegistry({
   ref: "python:3.13-slim",
 });
 

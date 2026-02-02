@@ -11,10 +11,10 @@ pnpm add @usbx/testing -D
 ### Usage
 
 ```ts
-import { SandboxClient } from "@usbx/core";
+import { createSandboxClient } from "@usbx/core";
 import { LocalProvider } from "@usbx/testing";
 
-const client = new SandboxClient({
+const client = createSandboxClient({
   provider: new LocalProvider(),
 });
 
