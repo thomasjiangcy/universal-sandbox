@@ -2,7 +2,6 @@ import type {
   CreateOptions,
   ImageBuilder,
   ImageCapableProvider,
-  Sandbox,
   SandboxProvider,
 } from "./types.js";
 
@@ -12,13 +11,12 @@ export type SandboxClientOptions<
   provider: TProvider;
 };
 
-type ProviderSandbox<TProvider extends SandboxProvider<unknown, unknown, unknown>> =
-  TProvider extends { create(options?: CreateOptions): Promise<infer TSandbox> }
-    ? TSandbox
-    : Sandbox<unknown, unknown>;
-
-type ProviderNative<TProvider extends SandboxProvider<unknown, unknown, unknown>> =
-  TProvider extends { native?: infer TProviderNative } ? TProviderNative | undefined : undefined;
+type ProviderCreate<TProvider extends SandboxProvider<unknown, unknown, unknown>> = ReturnType<
+  TProvider["create"]
+>;
+type ProviderGet<TProvider extends SandboxProvider<unknown, unknown, unknown>> = ReturnType<
+  TProvider["get"]
+>;
 
 export class SandboxClient<
   TProvider extends SandboxProvider<unknown, unknown, unknown> = SandboxProvider,
@@ -33,15 +31,15 @@ export class SandboxClient<
     }
   }
 
-  get native(): ProviderNative<TProvider> {
+  get native(): TProvider["native"] {
     return this.provider.native;
   }
 
-  async create(options?: CreateOptions): Promise<ProviderSandbox<TProvider>> {
+  async create(options?: CreateOptions): ProviderCreate<TProvider> {
     return this.provider.create(options);
   }
 
-  async get(idOrName: string): Promise<ProviderSandbox<TProvider>> {
+  async get(idOrName: string): ProviderGet<TProvider> {
     return this.provider.get(idOrName);
   }
 
@@ -73,7 +71,9 @@ export function createSandboxClient<TProvider extends SandboxProvider<unknown, u
 ): SandboxClient<TProvider>;
 export function createSandboxClient(
   options: SandboxClientOptions<SandboxProvider<unknown, unknown, unknown>>,
-): SandboxClient<SandboxProvider<unknown, unknown, unknown>> {
+):
+  | SandboxClient<SandboxProvider<unknown, unknown, unknown>>
+  | SandboxClientWithImages<ImageCapableProvider<unknown, unknown, unknown>> {
   if (isImageCapableProvider(options.provider)) {
     return new SandboxClientWithImages({ provider: options.provider });
   }
