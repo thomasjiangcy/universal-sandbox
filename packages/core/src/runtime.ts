@@ -35,11 +35,11 @@ export class SandboxClient<
     return this.provider.native;
   }
 
-  async create(options?: CreateOptions): ProviderCreate<TProvider> {
+  create(options?: CreateOptions): ProviderCreate<TProvider> {
     return this.provider.create(options);
   }
 
-  async get(idOrName: string): ProviderGet<TProvider> {
+  get(idOrName: string): ProviderGet<TProvider> {
     return this.provider.get(idOrName);
   }
 
