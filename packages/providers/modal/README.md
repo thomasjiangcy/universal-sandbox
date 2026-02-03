@@ -52,6 +52,34 @@ const sbx = await client.create({ image });
 - `dockerfilePath` is not supported in the unified build API for Modal.
 - `dockerfileContent` is treated as Dockerfile commands (lines like `FROM ...` and comments are ignored).
 
+### Mounts (Native Volumes + Buckets)
+
+Modal supports native volumes and cloud bucket mounts via `CreateOptions.mounts`.
+
+```ts
+const sbx = await client.create({
+  mounts: [
+    {
+      type: "volume",
+      id: "my-volume",
+      mountPath: "/mnt/volume",
+      readOnly: true,
+    },
+    {
+      type: "bucket",
+      provider: "s3",
+      bucket: "my-bucket",
+      mountPath: "/mnt/bucket",
+      credentialsRef: "my-modal-secret",
+      prefix: "team/a",
+      readOnly: false,
+    },
+  ],
+});
+```
+
+You can also mount a pre-resolved volume or bucket handle by passing `{ handle, mountPath }`.
+
 ### Links
 
 - https://modal.com/docs

@@ -1,6 +1,14 @@
-import type { App, Image, SandboxCreateParams, SandboxExecParams, Secret } from "modal";
+import type {
+  App,
+  Image,
+  ModalClient,
+  SandboxCreateParams,
+  SandboxExecParams,
+  Secret,
+} from "modal";
 
 export type ModalProviderOptions = {
+  client?: ModalClient;
   app?: App;
   appName?: string;
   appLookupOptions?: {

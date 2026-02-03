@@ -56,14 +56,10 @@ describe("e2b e2e execStream", () => {
 
     const sandbox = await provider.create();
     cleanup.add(() => provider.delete(sandbox.id));
-    try {
-      const result = await sandbox.execStream("echo", ["hello"]);
-      const stdout = await readStreamText(result.stdout);
+    const result = await sandbox.execStream("echo", ["hello"]);
+    const stdout = await readStreamText(result.stdout);
 
-      await expect(result.exitCode).resolves.toBe(0);
-      expect(stdout).toContain("hello");
-    } finally {
-      await provider.delete(sandbox.id);
-    }
+    await expect(result.exitCode).resolves.toBe(0);
+    expect(stdout).toContain("hello");
   }, 20000);
 });

@@ -33,7 +33,10 @@ describe("daytona e2e image build", () => {
   });
 
   it("builds a snapshot and creates a sandbox", async () => {
-    const provider = new DaytonaProvider();
+    const createTimeout = Number(process.env.DAYTONA_CREATE_TIMEOUT ?? 180);
+    const provider = new DaytonaProvider({
+      createOptions: { timeout: Number.isFinite(createTimeout) ? createTimeout : 180 },
+    });
     const snapshotName = `usbx-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const image = await provider.images.build({

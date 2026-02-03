@@ -37,11 +37,7 @@ describe("e2b e2e exec", () => {
 
     const sandbox = await provider.create();
     cleanup.add(() => provider.delete(sandbox.id));
-    try {
-      const result = await sandbox.exec("echo", ["hello"]);
-      expect(result.stdout).toContain("hello");
-    } finally {
-      await provider.delete(sandbox.id);
-    }
+    const result = await sandbox.exec("echo", ["hello"]);
+    expect(result.stdout).toContain("hello");
   }, 20000);
 });

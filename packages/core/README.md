@@ -51,6 +51,81 @@ const image = await client.images.fromRegistry({
 const sbx = await client.create({ name: "py-sandbox", image });
 ```
 
+### Mounts
+
+The unified API supports attaching storage at sandbox creation time via `CreateOptions.mounts`. There
+are two usage styles:
+
+### Inline Mounts
+
+```ts
+const sbx = await client.create({
+  mounts: [
+    { type: "volume", id: "my-volume", mountPath: "/mnt/data" },
+    {
+      type: "bucket",
+      provider: "r2",
+      bucket: "my-bucket",
+      mountPath: "/mnt/r2",
+      credentialsRef: "r2-secret",
+      endpointUrl: "https://<accountid>.r2.cloudflarestorage.com",
+    },
+  ],
+});
+```
+
+### Handle-based Mounts
+
+```ts
+const volume = await client.provider.volumes?.create?.({ name: "my-volume" });
+const bucket = await client.provider.buckets?.fromRef?.({
+  provider: "r2",
+  bucket: "my-bucket",
+  credentialsRef: "r2-secret",
+  endpointUrl: "https://<accountid>.r2.cloudflarestorage.com",
+});
+
+const sbx = await client.create({
+  mounts: [
+    { handle: volume!, mountPath: "/mnt/data" },
+    { handle: bucket!, mountPath: "/mnt/r2" },
+  ],
+});
+```
+
+### Emulated Mounts
+
+Some providers can emulate bucket mounts by running a FUSE command inside the sandbox:
+
+```ts
+const sbx = await client.create({
+  mounts: [
+    {
+      type: "emulated",
+      mode: "bucket",
+      provider: "r2",
+      tool: "s3fs",
+      mountPath: "/mnt/r2",
+      readOnly: true,
+      setup: [
+        { command: "apt-get", args: ["update"] },
+        { command: "apt-get", args: ["install", "-y", "s3fs"] },
+      ],
+      command: {
+        command: "s3fs",
+        args: ["my-bucket", "/mnt/r2", "-o", "passwd_file=/etc/s3fs.passwd"],
+      },
+    },
+  ],
+});
+```
+
+### Notes
+
+- Provider support varies. See provider READMEs for which mount types are supported.
+- Emulated mounts depend on FUSE support and privileges in the runtime. `readOnly` is enforced by
+  adding tool-specific flags to the mount command.
+
 ### ImageRef Mapping
 
 | Provider     | ImageRef.kind | Meaning                                  |
