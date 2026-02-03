@@ -1,5 +1,16 @@
 # @usbx/modal
 
+## 0.2.0-alpha.1
+
+### Minor Changes
+
+- 468c7a3: Add mount support to CreateOptions, including native volume and bucket mounts where supported and emulated mounts for E2B and Sprites.
+
+### Patch Changes
+
+- Updated dependencies [468c7a3]
+  - @usbx/core@0.2.0-alpha.1
+
 ## 0.2.0-alpha.0
 
 ### Minor Changes
