@@ -6,13 +6,20 @@ import type {
   Sandbox as DaytonaSandboxClient,
 } from "@daytonaio/sdk";
 import type {
+  BucketHandle,
+  BucketHandleMount,
   CreateOptions,
   ImageBuildSpec,
   ImageBuilder,
   ImageCapableProvider,
   ImageRef,
   ImageRegistrySpec,
+  MountSpec,
+  NativeVolumeMount,
   Sandbox,
+  VolumeHandle,
+  VolumeHandleMount,
+  VolumeManager,
 } from "@usbx/core";
 
 import type { DaytonaExecOptions, DaytonaProviderOptions } from "./types.js";
@@ -32,6 +39,7 @@ export class DaytonaProvider implements ImageCapableProvider<
 
   native: Daytona;
   images: ImageBuilder;
+  volumes: VolumeManager;
 
   constructor(options: DaytonaProviderOptions = {}) {
     this.client = options.client ?? new Daytona(options.config);
@@ -78,6 +86,29 @@ export class DaytonaProvider implements ImageCapableProvider<
         };
       },
     };
+
+    this.volumes = {
+      get: async (idOrName: string): Promise<VolumeHandle> => {
+        const volume = await this.client.volume.get(idOrName);
+        return {
+          id: volume.id ?? idOrName,
+          name: volume.name,
+          native: volume,
+        };
+      },
+      create: async ({ name }: { name: string }): Promise<VolumeHandle> => {
+        const volume = await this.client.volume.create(name);
+        return {
+          id: volume.id ?? name,
+          name: volume.name,
+          native: volume,
+        };
+      },
+      delete: async (idOrName: string): Promise<void> => {
+        const volume = await this.client.volume.get(idOrName);
+        await this.client.volume.delete(volume);
+      },
+    };
   }
 
   async create(
@@ -86,6 +117,13 @@ export class DaytonaProvider implements ImageCapableProvider<
     let createParams: DaytonaCreateParams | undefined = this.createParams
       ? { ...this.createParams }
       : undefined;
+    if (options?.mounts && options.mounts.length > 0) {
+      const volumes = buildDaytonaVolumes(options.mounts);
+      const existing = createParams?.volumes ?? [];
+      createParams = createParams
+        ? { ...createParams, volumes: [...existing, ...volumes] }
+        : { volumes };
+    }
     if (options?.name) {
       createParams = createParams
         ? { ...createParams, name: options.name }
@@ -203,3 +241,53 @@ export class DaytonaProvider implements ImageCapableProvider<
     return Object.keys(options).length > 0 ? options : undefined;
   }
 }
+
+const isNativeVolumeMount = (mount: MountSpec): mount is NativeVolumeMount =>
+  "type" in mount && mount.type === "volume";
+
+const isHandleMount = (mount: MountSpec): mount is VolumeHandleMount | BucketHandleMount =>
+  "handle" in mount;
+
+const isBucketHandle = (handle: VolumeHandle | BucketHandle): handle is BucketHandle =>
+  "provider" in handle;
+
+const isVolumeHandleMount = (
+  mount: VolumeHandleMount | BucketHandleMount,
+): mount is VolumeHandleMount => !("provider" in mount.handle);
+
+const normalizeDaytonaMount = (mount: MountSpec): NativeVolumeMount => {
+  if (isHandleMount(mount)) {
+    if (isBucketHandle(mount.handle)) {
+      throw new Error("Daytona supports only native volume mounts.");
+    }
+    return {
+      type: "volume",
+      id: mount.handle.id,
+      ...(mount.handle.name ? { name: mount.handle.name } : {}),
+      mountPath: mount.mountPath,
+      ...(mount.readOnly !== undefined ? { readOnly: mount.readOnly } : {}),
+      ...(isVolumeHandleMount(mount) && mount.subpath ? { subpath: mount.subpath } : {}),
+    };
+  }
+  if (!isNativeVolumeMount(mount)) {
+    throw new Error("Daytona supports only native volume mounts.");
+  }
+  return mount;
+};
+
+const buildDaytonaVolumes = (
+  mounts: MountSpec[],
+): NonNullable<CreateSandboxBaseParams["volumes"]> => {
+  const volumeMounts = mounts.map(normalizeDaytonaMount);
+
+  return volumeMounts.map((mount) => {
+    if (mount.readOnly) {
+      throw new Error("Daytona volume mounts do not support readOnly.");
+    }
+    return {
+      volumeId: mount.id,
+      mountPath: mount.mountPath,
+      ...(mount.subpath ? { subpath: mount.subpath } : {}),
+    };
+  });
+};

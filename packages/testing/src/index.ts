@@ -77,3 +77,5 @@ export class LocalProvider implements SandboxProvider<undefined, undefined, unde
     }
   }
 }
+
+export * from "./e2e.js";

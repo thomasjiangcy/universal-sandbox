@@ -51,6 +51,26 @@ const sbx = await client.create({ name: "my-daytona-sbx", image });
 - Supported build inputs: `baseImage` or `dockerfilePath`.
 - `dockerfileContent` and `dockerfileCommands` are not supported in the unified build API for Daytona.
 
+### Mounts (Native Volumes)
+
+Daytona supports native volume mounts via `CreateOptions.mounts` with `type: "volume"`.
+
+```ts
+const sbx = await client.create({
+  name: "my-daytona-sbx",
+  mounts: [
+    {
+      type: "volume",
+      id: "volume-id",
+      mountPath: "/home/daytona/data",
+      subpath: "team/a",
+    },
+  ],
+});
+```
+
+You can also mount a pre-resolved volume handle by passing `{ handle, mountPath }`.
+
 ### Links
 
 - https://www.daytona.io/docs/en/typescript-sdk/

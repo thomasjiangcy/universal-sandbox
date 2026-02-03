@@ -3,6 +3,7 @@ export type SandboxId = string;
 export interface CreateOptions {
   name?: string;
   image?: ImageRef;
+  mounts?: MountSpec[];
 }
 
 export interface ListOptions {
@@ -33,6 +34,97 @@ export type ImageRegistrySpec = {
   ref: string;
   name?: string;
 };
+
+export type ExecCommandSpec = {
+  command: string;
+  args?: string[];
+};
+
+export type VolumeHandle<TNative = unknown> = {
+  id: string;
+  name?: string;
+  native?: TNative;
+};
+
+export type BucketHandle<TNative = unknown> = {
+  provider: "s3" | "r2" | "gcs";
+  bucket: string;
+  name?: string;
+  credentialsRef?: string;
+  endpointUrl?: string;
+  native?: TNative;
+};
+
+export type VolumeManager<TNative = unknown> = {
+  get(idOrName: string): Promise<VolumeHandle<TNative>>;
+  create?: (options: { name: string }) => Promise<VolumeHandle<TNative>>;
+  delete?: (idOrName: string) => Promise<void>;
+};
+
+export type BucketManager<TNative = unknown> = {
+  fromRef: (options: {
+    provider: "s3" | "r2" | "gcs";
+    bucket: string;
+    name?: string;
+    credentialsRef?: string;
+    endpointUrl?: string;
+  }) => Promise<BucketHandle<TNative>>;
+};
+
+export type NativeVolumeMount = {
+  type: "volume";
+  id: string;
+  name?: string;
+  mountPath: string;
+  readOnly?: boolean;
+  subpath?: string;
+};
+
+export type CloudBucketMount = {
+  type: "bucket";
+  provider: "s3" | "r2" | "gcs";
+  bucket: string;
+  mountPath: string;
+  prefix?: string;
+  readOnly?: boolean;
+  credentialsRef?: string;
+  endpointUrl?: string;
+  forcePathStyle?: boolean;
+  requesterPays?: boolean;
+};
+
+export type VolumeHandleMount = {
+  handle: VolumeHandle;
+  mountPath: string;
+  readOnly?: boolean;
+  subpath?: string;
+};
+
+export type BucketHandleMount = {
+  handle: BucketHandle;
+  mountPath: string;
+  readOnly?: boolean;
+  prefix?: string;
+  requesterPays?: boolean;
+};
+
+export type EmulatedMount = {
+  type: "emulated";
+  mode: "bucket";
+  provider: "s3" | "r2" | "gcs";
+  tool: "s3fs" | "rclone" | "gcsfuse";
+  mountPath: string;
+  readOnly?: boolean;
+  command: ExecCommandSpec;
+  setup?: ExecCommandSpec[];
+};
+
+export type MountSpec =
+  | NativeVolumeMount
+  | CloudBucketMount
+  | VolumeHandleMount
+  | BucketHandleMount
+  | EmulatedMount;
 
 export interface ImageBuilder {
   build(spec: ImageBuildSpec): Promise<ImageRef>;
@@ -85,6 +177,8 @@ export interface SandboxProvider<
   get(idOrName: string): Promise<Sandbox<TSandboxNative, TProviderOptions>>;
   delete(idOrName: string): Promise<void>;
   images?: ImageBuilder;
+  volumes?: VolumeManager;
+  buckets?: BucketManager;
   native?: TProviderNative;
 }
 

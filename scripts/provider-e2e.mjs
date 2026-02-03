@@ -3,9 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const KNOWN_PROVIDERS = ["local-docker", "e2b", "daytona", "modal", "sprites"];
-const REQUIRED_ENV_BY_PROVIDER = {
-  sprites: ["SPRITES_TOKEN"],
-};
+const REQUIRED_ENV_BY_PROVIDER = {};
 
 const helpText = `provider-e2e
 
@@ -183,6 +181,16 @@ const run = () => {
     } else {
       console.warn(`Env file not found: ${envPath}`);
     }
+  }
+
+  if (!process.env.E2B_EMULATED) {
+    process.env.E2B_EMULATED = "1";
+  }
+  if (!process.env.SPRITES_EMULATED) {
+    process.env.SPRITES_EMULATED = "1";
+  }
+  if (!process.env.LOCAL_DOCKER_FUSE) {
+    process.env.LOCAL_DOCKER_FUSE = "1";
   }
 
   checkRequiredEnv(providers);

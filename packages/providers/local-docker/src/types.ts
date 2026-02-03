@@ -21,6 +21,7 @@ export type LocalDockerProviderOptions = {
   defaultImage?: string;
   defaultCommand?: string[];
   portExposure?: LocalDockerPortExposure;
+  hostConfig?: Docker.ContainerCreateOptions["HostConfig"];
 };
 
 export type LocalDockerExecOptions = {

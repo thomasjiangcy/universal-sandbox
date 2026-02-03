@@ -45,7 +45,8 @@ describe("modal e2e exec", () => {
 
   it("creates a sandbox and runs a command", async () => {
     const client = getModalClient();
-    const app = await client.apps.fromName("usbx-e2e", { createIfMissing: true });
+    const appName = process.env.MODAL_APP_NAME ?? "usbx-e2e";
+    const app = await client.apps.fromName(appName, { createIfMissing: true });
     const provider = new ModalProvider({
       app,
       imageRef: "python:3.13-slim",
@@ -54,18 +55,7 @@ describe("modal e2e exec", () => {
     const sandbox = await provider.create();
     const cleanupTask = async () => {
       await provider.delete(sandbox.id);
-      try {
-        const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
-        await client.cpClient.appStop({
-          appId: app.appId,
-          source: appStopSource,
-        });
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn(`Modal app stop failed: ${message}`);
-      } finally {
-        client.close();
-      }
+      client.close();
     };
     cleanup.add(cleanupTask);
     try {
@@ -78,7 +68,8 @@ describe("modal e2e exec", () => {
 
   it("handles inherit stdout and stderr", async () => {
     const client = getModalClient();
-    const app = await client.apps.fromName("usbx-e2e", { createIfMissing: true });
+    const appName = process.env.MODAL_APP_NAME ?? "usbx-e2e";
+    const app = await client.apps.fromName(appName, { createIfMissing: true });
     const provider = new ModalProvider({
       app,
       imageRef: "python:3.13-slim",
@@ -87,18 +78,7 @@ describe("modal e2e exec", () => {
     const sandbox = await provider.create();
     const cleanupTask = async () => {
       await provider.delete(sandbox.id);
-      try {
-        const appStopSource = 1; // AppStopSource.APP_STOP_SOURCE_CLI (not exported)
-        await client.cpClient.appStop({
-          appId: app.appId,
-          source: appStopSource,
-        });
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn(`Modal app stop failed: ${message}`);
-      } finally {
-        client.close();
-      }
+      client.close();
     };
     cleanup.add(cleanupTask);
     try {

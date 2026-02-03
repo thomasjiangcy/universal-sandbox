@@ -3,13 +3,22 @@ import path from "node:path";
 import Docker from "dockerode";
 import * as tar from "tar-fs";
 import type {
+  BucketHandle,
+  BucketHandleMount,
   CreateOptions,
+  EmulatedMount,
+  ExecCommandSpec,
   ImageBuildSpec,
   ImageBuilder,
   ImageCapableProvider,
   ImageRef,
   ImageRegistrySpec,
+  MountSpec,
+  NativeVolumeMount,
   Sandbox,
+  VolumeHandle,
+  VolumeHandleMount,
+  VolumeManager,
 } from "@usbx/core";
 
 import type {
@@ -48,9 +57,11 @@ export class LocalDockerProvider implements ImageCapableProvider<
   private defaultImage?: string;
   private defaultCommand: string[];
   private portExposure: Required<LocalDockerPortExposure>;
+  private hostConfig?: Docker.ContainerCreateOptions["HostConfig"];
 
   native: Docker;
   images: ImageBuilder;
+  volumes: VolumeManager;
 
   constructor(options: LocalDockerProviderOptions = {}) {
     if (options.docker) {
@@ -79,6 +90,9 @@ export class LocalDockerProvider implements ImageCapableProvider<
     }
     this.defaultCommand = options.defaultCommand ?? ["sleep", "infinity"];
     this.portExposure = resolvePortExposure(options.portExposure);
+    if (options.hostConfig !== undefined) {
+      this.hostConfig = options.hostConfig;
+    }
 
     this.images = {
       build: async (spec: ImageBuildSpec): Promise<ImageRef> => {
@@ -136,6 +150,32 @@ export class LocalDockerProvider implements ImageCapableProvider<
         };
       },
     };
+
+    this.volumes = {
+      get: async (idOrName: string): Promise<VolumeHandle> => {
+        const volume = this.client.getVolume(idOrName);
+        const info = await volume.inspect();
+        return {
+          id: info.Name,
+          name: info.Name,
+          native: volume,
+        };
+      },
+      create: async ({ name }: { name: string }): Promise<VolumeHandle> => {
+        const created = await this.client.createVolume({ Name: name });
+        const volumeName = created.Name ?? name;
+        const volume = this.client.getVolume(volumeName);
+        return {
+          id: volumeName,
+          name: volumeName,
+          native: volume,
+        };
+      },
+      delete: async (idOrName: string): Promise<void> => {
+        const volume = this.client.getVolume(idOrName);
+        await volume.remove();
+      },
+    };
   }
 
   async create(
@@ -162,17 +202,35 @@ export class LocalDockerProvider implements ImageCapableProvider<
     await this.ensureImage(image);
 
     const { ExposedPorts, HostConfig } = buildPortExposureConfig(this.portExposure);
+    const mountConfig = options?.mounts ? resolveDockerMounts(options.mounts) : undefined;
+    const mounts = mountConfig?.native ?? [];
+    const hostConfigBase: Docker.ContainerCreateOptions["HostConfig"] = {
+      ...HostConfig,
+      ...this.hostConfig,
+    };
+    const existingMounts = hostConfigBase.Mounts ?? [];
+    const mergedHostConfig =
+      mounts.length > 0
+        ? {
+            ...hostConfigBase,
+            Mounts: [...existingMounts, ...mounts],
+          }
+        : HostConfig;
     const container = await this.client.createContainer({
       name: options.name,
       Image: image,
       Cmd: this.defaultCommand,
       Tty: false,
       ...(ExposedPorts ? { ExposedPorts } : {}),
-      ...(HostConfig ? { HostConfig } : {}),
+      ...(mergedHostConfig ? { HostConfig: mergedHostConfig } : {}),
     });
 
     await container.start();
-    return new LocalDockerSandbox(container.id, options.name, container, this.client);
+    const sandbox = new LocalDockerSandbox(container.id, options.name, container, this.client);
+    if (mountConfig?.emulated && mountConfig.emulated.length > 0) {
+      await applyEmulatedMounts("Local Docker", sandbox, mountConfig.emulated);
+    }
+    return sandbox;
   }
 
   async get(idOrName: string): Promise<Sandbox<Docker.Container, LocalDockerExecOptions>> {
@@ -205,3 +263,147 @@ export class LocalDockerProvider implements ImageCapableProvider<
     }
   }
 }
+
+const isNativeVolumeMount = (mount: MountSpec): mount is NativeVolumeMount =>
+  "type" in mount && mount.type === "volume";
+
+const isHandleMount = (mount: MountSpec): mount is VolumeHandleMount | BucketHandleMount =>
+  "handle" in mount;
+
+const isBucketHandle = (handle: VolumeHandle | BucketHandle): handle is BucketHandle =>
+  "provider" in handle;
+
+const isVolumeHandleMount = (
+  mount: VolumeHandleMount | BucketHandleMount,
+): mount is VolumeHandleMount => !("provider" in mount.handle);
+
+const normalizeDockerMount = (mount: MountSpec): NativeVolumeMount => {
+  if (isHandleMount(mount)) {
+    if (isBucketHandle(mount.handle)) {
+      throw new Error("Local Docker supports only native volume mounts.");
+    }
+    if (isVolumeHandleMount(mount) && mount.subpath) {
+      throw new Error("Local Docker volume mounts do not support subpath.");
+    }
+    return {
+      type: "volume",
+      id: mount.handle.id,
+      ...(mount.handle.name ? { name: mount.handle.name } : {}),
+      mountPath: mount.mountPath,
+      ...(mount.readOnly !== undefined ? { readOnly: mount.readOnly } : {}),
+      ...(isVolumeHandleMount(mount) && mount.subpath ? { subpath: mount.subpath } : {}),
+    };
+  }
+  if (!isNativeVolumeMount(mount)) {
+    throw new Error("Local Docker supports only native volume mounts.");
+  }
+  if (mount.subpath) {
+    throw new Error("Local Docker volume mounts do not support subpath.");
+  }
+  return mount;
+};
+
+const buildDockerVolumeMounts = (
+  mounts: MountSpec[],
+): NonNullable<NonNullable<Docker.ContainerCreateOptions["HostConfig"]>["Mounts"]> => {
+  const volumeMounts = mounts.map(normalizeDockerMount);
+
+  return volumeMounts.map((mount) => ({
+    Type: "volume",
+    Source: mount.id,
+    Target: mount.mountPath,
+    ReadOnly: mount.readOnly ?? false,
+  }));
+};
+
+const isEmulatedMount = (mount: MountSpec): mount is EmulatedMount =>
+  "type" in mount && mount.type === "emulated";
+
+const resolveDockerMounts = (
+  mounts: MountSpec[],
+): {
+  native: NonNullable<NonNullable<Docker.ContainerCreateOptions["HostConfig"]>["Mounts"]>;
+  emulated: EmulatedMount[];
+} => {
+  const emulated = mounts.filter(isEmulatedMount);
+  const native = mounts.filter((mount) => !isEmulatedMount(mount));
+  if (native.length === 0) {
+    return { native: [], emulated };
+  }
+  return { native: buildDockerVolumeMounts(native), emulated };
+};
+
+const runCommand = async (
+  providerName: string,
+  sandbox: Sandbox<Docker.Container, LocalDockerExecOptions>,
+  spec: ExecCommandSpec,
+  label: string,
+): Promise<void> => {
+  try {
+    const result = await sandbox.exec(spec.command, spec.args ?? []);
+    if (result.exitCode !== 0) {
+      const exitCode = result.exitCode ?? "unknown";
+      throw new Error(
+        `${providerName} emulated mount ${label} failed (exit ${exitCode}): ${result.stderr}`,
+      );
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${providerName} emulated mount ${label} failed: ${message}`);
+  }
+};
+
+const buildEmulatedCommand = (mount: EmulatedMount): ExecCommandSpec => {
+  const args = mount.command.args ? [...mount.command.args] : [];
+  if (mount.readOnly) {
+    if (mount.tool === "s3fs") {
+      if (!hasS3fsReadOnly(args)) {
+        args.push("-o", "ro");
+      }
+    } else if (mount.tool === "rclone" || mount.tool === "gcsfuse") {
+      if (!args.includes("--read-only")) {
+        args.push("--read-only");
+      }
+    }
+  }
+  return { command: mount.command.command, args };
+};
+
+const hasS3fsReadOnly = (args: string[]): boolean => {
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!arg) {
+      continue;
+    }
+    if (arg === "ro" || arg.startsWith("ro,") || arg.endsWith(",ro") || arg.includes(",ro,")) {
+      return true;
+    }
+    if (arg === "-o") {
+      const next = args[i + 1];
+      if (
+        next === "ro" ||
+        next?.startsWith("ro,") ||
+        next?.endsWith(",ro") ||
+        next?.includes(",ro,")
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const applyEmulatedMounts = async (
+  providerName: string,
+  sandbox: Sandbox<Docker.Container, LocalDockerExecOptions>,
+  mounts: EmulatedMount[],
+): Promise<void> => {
+  for (const mount of mounts) {
+    if (mount.setup) {
+      for (const setupCommand of mount.setup) {
+        await runCommand(providerName, sandbox, setupCommand, "setup");
+      }
+    }
+    await runCommand(providerName, sandbox, buildEmulatedCommand(mount), "command");
+  }
+};
