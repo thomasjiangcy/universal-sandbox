@@ -215,7 +215,7 @@ export class LocalDockerProvider implements ImageCapableProvider<
             ...hostConfigBase,
             Mounts: [...existingMounts, ...mounts],
           }
-        : HostConfig;
+        : hostConfigBase;
     const container = await this.client.createContainer({
       name: options.name,
       Image: image,
