@@ -1,5 +1,11 @@
 # @usbx/local-docker
 
+## 0.2.1
+
+### Patch Changes
+
+- b7f38b4: Stabilize emulated mount e2e flows and improve diagnostics for provider testing.
+
 ## 0.2.0
 
 ### Minor Changes
