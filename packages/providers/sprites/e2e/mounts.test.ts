@@ -1,11 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { SpritesProvider } from "../src/index.js";
-import {
-  buildSandboxName,
-  escapeSingleQuoted,
-  getR2Env,
-  writeFile,
-} from "../../../testing/src/index.js";
+import { buildSandboxName, escapeSingleQuoted, getR2Env } from "../../../testing/src/index.js";
 
 type CreatedSandbox = Awaited<ReturnType<SpritesProvider["create"]>>;
 
