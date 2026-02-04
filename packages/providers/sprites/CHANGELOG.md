@@ -1,5 +1,20 @@
 # @usbx/sprites
 
+## 0.2.0
+
+### Minor Changes
+
+- 1a85cd1: Add a provider image builder API and allow creating sandboxes from built or registry image references.
+  Rename `SandboxManager` to `SandboxClient`.
+  This change should be released as a prerelease.
+- 468c7a3: Add mount support to CreateOptions, including native volume and bucket mounts where supported and emulated mounts for E2B and Sprites.
+
+### Patch Changes
+
+- Updated dependencies [1a85cd1]
+- Updated dependencies [468c7a3]
+  - @usbx/core@0.2.0
+
 ## 0.2.0-alpha.1
 
 ### Minor Changes
