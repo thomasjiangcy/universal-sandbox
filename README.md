@@ -138,6 +138,7 @@ supports image building.
 - Run all provider e2e tests: `pnpm test:providers`
 - Run a subset: `pnpm test:providers --providers e2b,sprites`
 - List providers: `pnpm test:providers --list`
+- Sprites emulated mounts require `sudo` inside the sprite image. Ensure `sudo` is installed in the base image used for Sprites runs.
 
 ## Tooling
 

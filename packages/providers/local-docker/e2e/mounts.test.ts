@@ -8,6 +8,8 @@ import {
   writeFile,
 } from "../../../testing/src/index.js";
 
+type CreatedSandbox = Awaited<ReturnType<LocalDockerProvider["create"]>>;
+
 describe("local docker mounts", () => {
   test("mounts a native volume via handle", { timeout: 60_000 }, async () => {
     const provider = new LocalDockerProvider({ defaultImage: "alpine:3.20" });
@@ -18,7 +20,6 @@ describe("local docker mounts", () => {
       throw new Error("LocalDocker volumes.create is not available.");
     }
 
-    type CreatedSandbox = Awaited<ReturnType<LocalDockerProvider["create"]>>;
     let sandbox: CreatedSandbox | undefined;
     let testError: unknown;
     let cleanupError: unknown;
@@ -63,6 +64,28 @@ describe("local docker mounts", () => {
   const describeEmulated = canEmulate ? describe : describe.skip;
 
   describeEmulated("emulated bucket mount", () => {
+    const writeWithRetry = async (
+      sandbox: CreatedSandbox,
+      filePath: string,
+      content: string,
+      attempts = 5,
+      delayMs = 1000,
+    ): Promise<void> => {
+      let lastError: unknown;
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+          await writeFile(sandbox, filePath, content);
+          return;
+        } catch (error) {
+          lastError = error;
+          if (attempt < attempts) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+        }
+      }
+      throw lastError;
+    };
+
     test("mounts R2 via s3fs", { timeout: 120_000 }, async () => {
       if (!r2) {
         throw new Error("R2 env missing.");
@@ -79,7 +102,6 @@ describe("local docker mounts", () => {
       });
 
       const sandboxName = buildSandboxName("usbx-e2e-sbx");
-      type CreatedSandbox = Awaited<ReturnType<LocalDockerProvider["create"]>>;
       let sandbox: CreatedSandbox | undefined;
       let filePath: string | undefined;
       let testError: unknown;
@@ -119,6 +141,10 @@ describe("local docker mounts", () => {
                   `url=${r2.endpoint}`,
                   "-o",
                   "use_path_request_style",
+                  "-o",
+                  "dbglevel=info",
+                  "-o",
+                  "curldbg",
                 ],
               },
             },
@@ -127,7 +153,7 @@ describe("local docker mounts", () => {
 
         const content = `hello-${Date.now()}`;
         filePath = `/mnt/r2/usbx-e2e-${Date.now()}.txt`;
-        await writeFile(sandbox, filePath, content);
+        await writeWithRetry(sandbox, filePath, content);
         const read = await readFile(sandbox, filePath);
         expect(read).toBe(content);
       } catch (error) {
